@@ -338,6 +338,12 @@
 				</Collapsible.Content>
 			</Collapsible.Root>
 		</div>
+		{#if store.storageUsed() > 0.8}
+			<p class="mt-4 text-[13px] font-medium text-destructive" role="status">
+				Browser storage is {Math.round(store.storageUsed() * 100)}% full. Download a backup, then
+				delete addresses you no longer need.
+			</p>
+		{/if}
 		<div class="mt-4 flex flex-wrap gap-2">
 			<Button disabled={nothing || sealing} onclick={download}>
 				{#if sealing}<Spinner />{/if}Download backup

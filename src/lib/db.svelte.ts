@@ -15,15 +15,35 @@ import {
 
 export const db: State = $state(empty());
 
-/** False until storage is read, so views can tell "loading" from "empty". */
-export const status = $state({ ready: false });
+/** False until storage is read, so views can tell "loading" from "empty". `used` is the stored size in characters. */
+export const status = $state({ ready: false, used: 0 });
+
+/** localStorage holds about 5M characters per site in every major browser. */
+const LIMIT = 5_000_000;
+
+/** Share of storage in use, 0–1. */
+export const storageUsed = () => status.used / LIMIT;
+
+let persisting = false;
+
+/**
+ * DuckDuckGo keeps no list of aliases, so ask the browser not to clear ours
+ * (Safari's 7-day rule, storage pressure). Called on user actions: Firefox prompts.
+ */
+function keep() {
+	if (persisting) return;
+	persisting = true;
+	navigator.storage?.persist?.().catch(() => {});
+}
 
 /** No accounts yet; null until storage is read. */
 export const isFresh = () => (status.ready ? !db.accounts.length : null);
 
 export function load() {
 	try {
-		Object.assign(db, parse(localStorage.getItem(KEY)));
+		const raw = localStorage.getItem(KEY);
+		status.used = raw?.length ?? 0;
+		Object.assign(db, parse(raw));
 	} catch {
 		/* blocked storage: run empty */
 	}
@@ -33,14 +53,18 @@ export function load() {
 		toast.warning('This browser blocks site storage. Nothing is kept after this tab closes.');
 	// every save writes the whole state, so another tab's save must land here first
 	window.addEventListener('storage', (e) => {
-		if (e.key === KEY || e.key === null) Object.assign(db, parse(e.newValue));
+		if (e.key !== KEY && e.key !== null) return;
+		status.used = e.newValue?.length ?? 0;
+		Object.assign(db, parse(e.newValue));
 	});
 }
 
 /** A silent failure here means the user thinks an address was saved when it was not. */
 export function save() {
 	try {
-		localStorage.setItem(KEY, JSON.stringify(db));
+		const raw = JSON.stringify(db);
+		localStorage.setItem(KEY, raw);
+		status.used = raw.length;
 		return true;
 	} catch {
 		toast.error("Could not save. This browser's storage is full or blocked.");
@@ -78,6 +102,7 @@ export function addAccount(account: Account, known: string[] = []) {
 	if (existing) Object.assign(existing, account, { addedAt: existing.addedAt });
 	else db.accounts.push({ label: '', addedAt: Date.now(), ...account });
 	db.current = account.username;
+	keep();
 	const have = Object.fromEntries(db.addresses.map((a) => [a.address, true]));
 	const now = Date.now();
 	const fresh = known.filter((a, i) => !have[a] && known.indexOf(a) === i);
@@ -121,6 +146,7 @@ export function removeAccount(username: string) {
 export function recordAddress(address: string, account: string) {
 	if (db.addresses.some((a) => a.address === address)) return;
 	db.addresses.unshift({ address, account, createdAt: Date.now(), note: '' });
+	keep();
 	const acct = accountFor(account);
 	if (acct) acct.generated = (acct.generated || 0) + 1;
 	save();
@@ -165,4 +191,5 @@ export function wipe() {
 		if (key === KEY || key.startsWith('duckpond.')) localStorage.removeItem(key);
 	}
 	Object.assign(db, empty());
+	status.used = 0;
 }

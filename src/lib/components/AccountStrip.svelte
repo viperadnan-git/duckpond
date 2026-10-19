@@ -78,8 +78,7 @@
 			type="single"
 			variant="key"
 			spacing={1.5}
-			value={db.current ?? ''}
-			onValueChange={(v) => v && selectAccount(v)}
+			bind:value={() => db.current ?? '', (v) => v && selectAccount(v)}
 			aria-label="Account"
 			class="flex-none"
 		>
