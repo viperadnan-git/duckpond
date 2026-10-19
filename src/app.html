@@ -9,6 +9,16 @@
 		<meta name="text-scale" content="scale" />
 		<meta name="color-scheme" content="light dark" />
 		<meta name="format-detection" content="telephone=no" />
+		<script>
+			// mark first visits before paint so the prerendered page shows the welcome
+			// view, not the dashboard; key matches KEY in src/lib/store.ts
+			try {
+				if (!JSON.parse(localStorage.getItem('duckpond.v1'))?.accounts?.length)
+					document.documentElement.dataset.fresh = '';
+			} catch {
+				document.documentElement.dataset.fresh = '';
+			}
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

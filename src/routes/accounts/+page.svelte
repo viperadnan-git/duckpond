@@ -19,6 +19,7 @@
 	import type { Account } from '#lib/store.js';
 
 	const { db, status } = store;
+	const fresh = $derived(store.isFresh());
 
 	/** Addresses can't outlive their account, so logging out takes them too. */
 	async function logOut(account: Account) {
@@ -47,99 +48,106 @@
 	DuckDuckGo.
 {/snippet}
 
-{#if status.ready && !db.accounts.length}
-	<!-- nothing to frame yet, so no card: the empty state sits on the page -->
-	<div class="mx-auto max-w-xl pt-6 md:pt-12">
-		<EmptyState icon={Users} title="No accounts yet">
-			Add a DuckDuckGo account to make addresses. You only need your Duck username and a passphrase
-			DuckDuckGo emails you.
-			{#snippet actions()}
-				<Button href={resolve('/accounts/add')}><Plus />Add account</Button>
-				<Button variant="outline" onclick={() => pickBackup()}>Restore a backup</Button>
-			{/snippet}
-		</EmptyState>
-	</div>
-{:else}
-	<div>
-		<Panel title="Accounts" id="accounts" footnote={logoutNote}>
-			{#snippet actions()}
-				<Button variant="outline" size="sm" href={resolve('/accounts/add')}
-					><Plus />Add account</Button
-				>
-			{/snippet}
+<div class={fresh === null ? 'hidden fresh:contents' : 'contents'}>
+	{#if fresh !== false}
+		<!-- nothing to frame yet, so no card: the empty state sits on the page -->
+		<div class="mx-auto max-w-xl pt-6 md:pt-12">
+			<EmptyState icon={Users} title="No accounts yet">
+				Add a DuckDuckGo account to make addresses. You only need your Duck username and a
+				passphrase DuckDuckGo emails you.
+				{#snippet actions()}
+					<Button href={resolve('/accounts/add')}><Plus />Add account</Button>
+					<Button variant="outline" onclick={() => pickBackup()}>Restore a backup</Button>
+				{/snippet}
+			</EmptyState>
+		</div>
+	{/if}
+</div>
+<div class={fresh === null ? 'contents fresh:hidden' : 'contents'}>
+	{#if fresh !== true}
+		<div>
+			<Panel title="Accounts" id="accounts" footnote={logoutNote}>
+				{#snippet actions()}
+					<Button variant="outline" size="sm" href={resolve('/accounts/add')}
+						><Plus />Add account</Button
+					>
+				{/snippet}
 
-			{#if !status.ready}
-				<div class="grid gap-3 py-2" aria-hidden="true">
-					<Skeleton class="h-14 w-full" /><Skeleton class="h-14 w-full" />
-				</div>
-			{:else if db.accounts.length}
-				<ul>
-					{#each db.accounts as account (account.username)}
-						{@const current = account.username === db.current}
-						{@const count = store.addressesOf(account.username).length}
-						{@const who = `${account.username}@duck.com`}
-						<li class="border-t first:border-t-0">
-							<Item.Root class="flex-nowrap items-start px-0">
-								<Item.Media class="self-start">
-									<Toggle
-										variant="key"
-										pressed={current}
-										onPressedChange={() => store.selectAccount(account.username)}
-										aria-label="Use {who}"
-										title={current ? 'In use' : 'Use this account'}
-										class="size-8 min-w-8 p-0 text-muted-foreground pointer-coarse:size-11 pointer-coarse:min-w-11"
-									>
-										<Check />
-									</Toggle>
-								</Item.Media>
-								<Item.Content class="min-w-0">
-									<Item.Title class="max-w-full">
-										<button
-											type="button"
-											class="max-w-full truncate rounded-[4px] text-left text-[15px] font-semibold outline-none hover:text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-											title="Copy {who}"
-											onclick={() => copy(who)}
+				{#if !status.ready}
+					<div class="grid gap-3 py-2" aria-hidden="true">
+						<Skeleton class="h-14 w-full" /><Skeleton class="h-14 w-full" />
+					</div>
+				{:else if db.accounts.length}
+					<ul>
+						{#each db.accounts as account (account.username)}
+							{@const current = account.username === db.current}
+							{@const count = store.addressesOf(account.username).length}
+							{@const who = `${account.username}@duck.com`}
+							<li class="border-t first:border-t-0">
+								<Item.Root class="flex-nowrap items-start px-0">
+									<Item.Media class="self-start">
+										<Toggle
+											variant="key"
+											pressed={current}
+											onPressedChange={() => store.selectAccount(account.username)}
+											aria-label="Use {who}"
+											title={current ? 'In use' : 'Use this account'}
+											class="size-8 min-w-8 p-0 text-muted-foreground pointer-coarse:size-11 pointer-coarse:min-w-11"
 										>
-											{who}
-										</button>
-									</Item.Title>
-									<Item.Description>
-										<Swap swapped={ui.copied === who} class="text-[13px]">
-											<span class="min-w-0 truncate">
-												{account.forwarding
-													? `Forwards to ${account.forwarding}`
-													: 'Signed in with a token'}
-											</span>
-											{#snippet alt()}<span class="flex items-center gap-1 font-medium text-primary"
-													><Check class="size-3.5" />Copied to clipboard</span
-												>{/snippet}
-										</Swap>
-									</Item.Description>
-									<p class="text-xs text-muted-foreground">
-										{plural(account.generated || 0, 'address')} made · {count} saved here
-									</p>
-									{#if !account.token}
-										<p class="text-[13px] text-destructive">
-											No token. Sign in again to generate addresses.
+											<Check />
+										</Toggle>
+									</Item.Media>
+									<Item.Content class="min-w-0">
+										<Item.Title class="max-w-full">
+											<button
+												type="button"
+												class="max-w-full truncate rounded-[4px] text-left text-[15px] font-semibold outline-none hover:text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+												title="Copy {who}"
+												onclick={() => copy(who)}
+											>
+												{who}
+											</button>
+										</Item.Title>
+										<Item.Description>
+											<Swap swapped={ui.copied === who} class="text-[13px]">
+												<span class="min-w-0 truncate">
+													{account.forwarding
+														? `Forwards to ${account.forwarding}`
+														: 'Signed in with a token'}
+												</span>
+												{#snippet alt()}<span
+														class="flex items-center gap-1 font-medium text-primary"
+														><Check class="size-3.5" />Copied to clipboard</span
+													>{/snippet}
+											</Swap>
+										</Item.Description>
+										<p class="text-xs text-muted-foreground">
+											{plural(account.generated || 0, 'address')} made · {count} saved here
 										</p>
-									{/if}
-								</Item.Content>
-								<Item.Actions>
-									<!-- a labelled icon on phones keeps the row to one line of actions -->
-									<Button
-										variant="destructive"
-										size="sm"
-										class="max-sm:size-8 max-sm:px-0"
-										aria-label="Log out of {who}"
-										onclick={() => logOut(account)}
-										><LogOut class="sm:hidden" /><span class="max-sm:hidden">Log out</span></Button
-									>
-								</Item.Actions>
-							</Item.Root>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</Panel>
-	</div>
-{/if}
+										{#if !account.token}
+											<p class="text-[13px] text-destructive">
+												No token. Sign in again to generate addresses.
+											</p>
+										{/if}
+									</Item.Content>
+									<Item.Actions>
+										<!-- a labelled icon on phones keeps the row to one line of actions -->
+										<Button
+											variant="destructive"
+											size="sm"
+											class="max-sm:size-8 max-sm:px-0"
+											aria-label="Log out of {who}"
+											onclick={() => logOut(account)}
+											><LogOut class="sm:hidden" /><span class="max-sm:hidden">Log out</span
+											></Button
+										>
+									</Item.Actions>
+								</Item.Root>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</Panel>
+		</div>
+	{/if}
+</div>

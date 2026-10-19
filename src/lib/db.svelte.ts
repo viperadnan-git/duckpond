@@ -18,6 +18,9 @@ export const db: State = $state(empty());
 /** False until storage is read, so views can tell "loading" from "empty". */
 export const status = $state({ ready: false });
 
+/** No accounts yet; null until storage is read (app.html's `data-fresh` covers that gap). */
+export const isFresh = () => (status.ready ? !db.accounts.length : null);
+
 export function load() {
 	try {
 		Object.assign(db, parse(localStorage.getItem(KEY)));

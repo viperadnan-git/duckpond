@@ -6,6 +6,8 @@
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant solid (@media (prefers-reduced-transparency: reduce));
+/* first visit, before storage is read: set pre-paint in app.html */
+@custom-variant fresh (&:where([data-fresh] *));
 
 /* duckmail's panel system: DuckDuckGo email palette on moulded surfaces.
    Raised parts catch light on top; recessed parts (fields, readout, key
