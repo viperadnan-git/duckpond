@@ -1,0 +1,268 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<style>
+			@font-face {
+				font-family: Archivo;
+				src: url(__FONTS__/archivo/files/archivo-latin-wght-normal.woff2) format('woff2');
+				font-weight: 100 900;
+			}
+			@font-face {
+				font-family: Martian;
+				src: url(__FONTS__/martian-mono/files/martian-mono-latin-wght-normal.woff2) format('woff2');
+				font-weight: 100 800;
+			}
+			@font-face {
+				font-family: Caveat;
+				src: url(__FONTS__/caveat/files/caveat-latin-wght-normal.woff2) format('woff2');
+				font-weight: 400 700;
+			}
+			:root {
+				--bg: #f0f4ff;
+				--fg: #111111;
+				--muted: #666666;
+				--card: #ffffff;
+				--sunk: #eeeeee;
+				--border: #dddddd;
+				--primary: #2b55ca;
+				--link: #3969ef;
+				--raise: 0 1px 0 rgb(255 255 255 / 0.9) inset, 0 1px 2px rgb(17 17 17 / 0.08);
+				--sunk-shadow: 0 1px 2px rgb(17 17 17 / 0.13) inset, 0 -1px 0 rgb(255 255 255 / 0.7);
+				--key: 0 3px 0 #1f429f, 0 5px 12px rgb(17 17 17 / 0.2);
+			}
+			* {
+				margin: 0;
+				box-sizing: border-box;
+			}
+			body {
+				width: 1200px;
+				height: 630px;
+				overflow: hidden;
+				position: relative;
+				background: var(--bg);
+				font-family: Archivo;
+				color: var(--fg);
+			}
+			.copy {
+				position: absolute;
+				left: 80px;
+				top: 76px;
+				width: 520px;
+			}
+			.brand {
+				display: flex;
+				align-items: center;
+				gap: 14px;
+				font-size: 34px;
+				font-weight: 800;
+				letter-spacing: -0.02em;
+			}
+			.brand img {
+				width: 52px;
+				height: 52px;
+			}
+			.ul {
+				position: relative;
+				white-space: nowrap;
+			}
+			.ul svg {
+				position: absolute;
+				left: 0;
+				width: 100%;
+				color: var(--link);
+			}
+			.brand .ul svg {
+				bottom: -9px;
+				height: 10px;
+			}
+			h1 {
+				margin-top: 64px;
+				font-size: 62px;
+				line-height: 1.06;
+				font-weight: 700;
+				letter-spacing: -0.03em;
+			}
+			h1 .ul svg {
+				bottom: -14px;
+				height: 18px;
+			}
+			p {
+				margin-top: 34px;
+				font-size: 25px;
+				line-height: 1.4;
+				color: var(--muted);
+				width: 470px;
+			}
+			/* the product, cropped by the frame */
+			.panel {
+				position: absolute;
+				left: 650px;
+				top: 118px;
+				width: 640px;
+				background: var(--card);
+				border: 1px solid var(--border);
+				border-radius: 16px;
+				box-shadow:
+					var(--raise),
+					0 24px 60px -20px rgb(43 85 202 / 0.25);
+				padding: 26px;
+			}
+			.keys {
+				display: flex;
+				gap: 8px;
+			}
+			.keys span {
+				font-size: 16px;
+				font-weight: 600;
+				padding: 9px 16px;
+				border-radius: 8px;
+				background: var(--card);
+				border: 1px solid var(--border);
+				box-shadow: var(--raise);
+			}
+			.keys .on {
+				background: var(--primary);
+				border-color: var(--primary);
+				color: #fff;
+			}
+			.gen {
+				margin-top: 20px;
+				display: flex;
+				align-items: center;
+				gap: 16px;
+			}
+			.readout {
+				flex: none;
+				background: var(--sunk);
+				box-shadow: var(--sunk-shadow);
+				border-radius: 8px;
+				padding: 18px 20px;
+			}
+			.legend {
+				font: 600 12px/1 Martian;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: var(--muted);
+			}
+			.addr {
+				margin-top: 12px;
+				font: 600 18px/1.3 Martian;
+				letter-spacing: -0.02em;
+				white-space: nowrap;
+			}
+			.btn {
+				background: var(--primary);
+				color: #fff;
+				font-size: 19px;
+				font-weight: 700;
+				padding: 18px 22px;
+				border-radius: 8px;
+				box-shadow: var(--key);
+				white-space: nowrap;
+			}
+			.rows {
+				margin-top: 22px;
+				border-top: 1px solid var(--border);
+			}
+			.row {
+				display: flex;
+				align-items: baseline;
+				gap: 16px;
+				padding: 16px 2px;
+				border-bottom: 1px solid var(--border);
+			}
+			.row .a {
+				font: 500 17px Martian;
+				letter-spacing: -0.02em;
+			}
+			.row .s {
+				font-size: 17px;
+				color: var(--muted);
+			}
+			.note {
+				position: absolute;
+				left: 812px;
+				top: 34px;
+				font: 600 34px/1 Caveat;
+				color: var(--muted);
+				transform: rotate(-3deg);
+			}
+			.note svg {
+				position: absolute;
+				left: 262px;
+				top: 6px;
+				width: 80px;
+				height: 120px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="copy">
+			<div class="brand">
+				<img src="__LOGO__" />
+				<span
+					>duck<span class="ul"
+						>pond<svg viewBox="0 0 200 16" preserveAspectRatio="none">
+							<path
+								d="M4 10C30 4 52 14 80 8S130 3 158 9 192 11 197 6"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="3"
+								stroke-linecap="round"
+								vector-effect="non-scaling-stroke"
+							/></svg></span
+				></span>
+			</div>
+			<h1>
+				Every Duck Address you’ve made, in
+				<span class="ul"
+					>one pond.<svg viewBox="0 0 200 16" preserveAspectRatio="none">
+						<path
+							d="M4 10C30 4 52 14 80 8S130 3 158 9 192 11 197 6"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="4.5"
+							stroke-linecap="round"
+							vector-effect="non-scaling-stroke"
+						/></svg
+				></span>
+			</h1>
+			<p>Private @duck.com aliases for every site, across all your DuckDuckGo accounts.</p>
+		</div>
+
+		<div class="panel">
+			<div class="keys"><span class="on">you</span><span>work</span><span>shopping</span></div>
+			<div class="gen">
+				<div class="readout">
+					<div class="legend">Latest address</div>
+					<div class="addr">putt-salt-blunt@duck.com</div>
+				</div>
+				<div class="btn">New address</div>
+			</div>
+			<div class="rows">
+				<div class="row">
+					<span class="a">modular-ivy-upper@duck.com</span><span class="s">shop.example</span>
+				</div>
+				<div class="row">
+					<span class="a">lung-revisit-crumb@duck.com</span><span class="s">airline.com</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="note">
+			one tap, and it’s copied
+			<svg
+				viewBox="0 0 80 120"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2.4"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M6 14C50 8 70 40 62 104" />
+				<path d="M50 92 62 106 72 92" />
+			</svg>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,371 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn-svelte/tailwind.css';
+@import '@fontsource-variable/archivo';
+@import '@fontsource-variable/martian-mono';
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant solid (@media (prefers-reduced-transparency: reduce));
+
+/* duckmail's panel system: DuckDuckGo email palette on moulded surfaces.
+   Raised parts catch light on top; recessed parts (fields, readout, key
+   tracks) shade inward. DDG variable names in comments. */
+:root {
+	--background: #f0f4ff; /* --title-background */
+	--foreground: #111111; /* --emphasized-text-color */
+	--card: #ffffff; /* --card-background-color */
+	--card-foreground: #111111;
+	--popover: #ffffff;
+	--popover-foreground: #111111;
+	/* --button-color; white on --link-color misses WCAG AA */
+	--primary: #2b55ca;
+	--primary-foreground: #ffffff;
+	--secondary: #e3eafd;
+	--secondary-foreground: #2b55ca;
+	--muted: #eeeeee; /* --subtle-color */
+	--muted-foreground: #666666; /* --deemphasized-text-color */
+	--accent: #e3eafd;
+	--accent-foreground: #111111;
+	--destructive: #ee1025;
+	--border: #dddddd; /* --separator-color */
+	--input: #dddddd;
+	--ring: #3969ef; /* --link-color */
+	--link: #3969ef;
+	--primary-hover: #2346a8;
+	--raise: #ffffff;
+	--sunk: #eeeeee;
+	--shadow-raise: 0 1px 0 rgb(255 255 255 / 0.9) inset, 0 1px 2px rgb(17 17 17 / 0.08);
+	--shadow-sunk: 0 1px 2px rgb(17 17 17 / 0.13) inset, 0 -1px 0 rgb(255 255 255 / 0.7);
+	--shadow-key: 0 3px 0 #1f429f, 0 5px 12px rgb(17 17 17 / 0.2);
+	--chart-1: #3969ef;
+	--chart-2: #2b55ca;
+	--chart-3: #7295f6;
+	--chart-4: #8fabf9;
+	--chart-5: #666666;
+	--radius: 0.625rem;
+	--sidebar: #ffffff;
+	--sidebar-foreground: #111111;
+	--sidebar-primary: #2b55ca;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #e3eafd;
+	--sidebar-accent-foreground: #111111;
+	--sidebar-border: #dddddd;
+	--sidebar-ring: #3969ef;
+}
+
+.dark {
+	--background: #111111; /* --background-color */
+	--foreground: #f5f5f5; /* --text-color */
+	--card: #222222;
+	--card-foreground: #f5f5f5;
+	--popover: #2b2b2b;
+	--popover-foreground: #f5f5f5;
+	/* white on this blue fails contrast, so dark text */
+	--primary: #7295f6;
+	--primary-foreground: #111111;
+	--secondary: #2b2b2b;
+	--secondary-foreground: #f5f5f5;
+	--muted: #191919;
+	--muted-foreground: #ababab;
+	/* hover/highlight in menus: one step above --popover, or it disappears into it */
+	--accent: #3a3a3a;
+	--accent-foreground: #f5f5f5;
+	--destructive: #eb876c;
+	--border: #444444;
+	--input: #444444;
+	--ring: #8fabf9;
+	--link: #8fabf9;
+	--primary-hover: #8fabf9;
+	--raise: #2b2b2b;
+	--sunk: #191919;
+	--shadow-raise: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 1px 3px rgb(0 0 0 / 0.5);
+	--shadow-sunk: 0 2px 4px rgb(0 0 0 / 0.5) inset, 0 -1px 0 rgb(255 255 255 / 0.04);
+	--shadow-key: 0 3px 0 #4a6fd6, 0 5px 12px rgb(0 0 0 / 0.45);
+	--chart-1: #7295f6;
+	--chart-2: #8fabf9;
+	--chart-3: #3969ef;
+	--chart-4: #2b55ca;
+	--chart-5: #ababab;
+	--sidebar: #191919;
+	--sidebar-foreground: #f5f5f5;
+	--sidebar-primary: #7295f6;
+	--sidebar-primary-foreground: #111111;
+	--sidebar-accent: #3a3a3a;
+	--sidebar-accent-foreground: #f5f5f5;
+	--sidebar-border: #444444;
+	--sidebar-ring: #8fabf9;
+}
+
+@theme inline {
+	--font-sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
+	--font-mono: 'Martian Mono Variable', ui-monospace, monospace;
+	--font-hand: 'Caveat Variable', 'Comic Sans MS', cursive;
+	--color-control: color-mix(in srgb, var(--foreground) 26%, transparent);
+	--color-band: color-mix(in srgb, var(--sunk) 55%, var(--card));
+	--color-raise: var(--raise);
+	--color-sunk: var(--sunk);
+	--color-primary-hover: var(--primary-hover);
+	--shadow-raise: var(--shadow-raise);
+	--shadow-sunk: var(--shadow-sunk);
+	--shadow-key: var(--shadow-key);
+	--radius-control: 7px;
+	--radius-key: 8px;
+	--radius-panel: var(--radius);
+	--color-link: var(--link);
+	--ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+	--color-sidebar-ring: var(--sidebar-ring);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar: var(--sidebar);
+	--color-chart-5: var(--chart-5);
+	--color-chart-4: var(--chart-4);
+	--color-chart-3: var(--chart-3);
+	--color-chart-2: var(--chart-2);
+	--color-chart-1: var(--chart-1);
+	--color-ring: var(--ring);
+	--color-input: var(--input);
+	--color-border: var(--border);
+	--color-destructive: var(--destructive);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-accent: var(--accent);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-muted: var(--muted);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-secondary: var(--secondary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-primary: var(--primary);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-popover: var(--popover);
+	--color-card-foreground: var(--card-foreground);
+	--color-card: var(--card);
+	--color-foreground: var(--foreground);
+	--color-background: var(--background);
+	--radius-sm: calc(var(--radius) * 0.6);
+	--radius-md: calc(var(--radius) * 0.8);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) * 1.4);
+	--radius-2xl: calc(var(--radius) * 1.8);
+	--radius-3xl: calc(var(--radius) * 2.2);
+	--radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
+	html {
+		@apply font-sans;
+	}
+}
+
+@layer base {
+	html {
+		-webkit-tap-highlight-color: transparent;
+		text-size-adjust: 100%;
+	}
+	/* anchors land below the sticky header */
+	[id] {
+		scroll-margin-top: calc(3.5rem + env(safe-area-inset-top) + 1rem);
+	}
+	body {
+		min-height: 100dvh;
+		touch-action: manipulation;
+	}
+	/* Tailwind v4 dropped pointer cursors on buttons */
+	button:not(:disabled),
+	[role='button']:not([aria-disabled='true']),
+	[role='checkbox'],
+	[role='radio'],
+	[role='option'],
+	[role='menuitem'],
+	[role='menuitemradio'],
+	[role='menuitemcheckbox'],
+	[role='tab'],
+	[data-slot='select-trigger'],
+	summary,
+	label:has(input, button) {
+		cursor: pointer;
+	}
+	:disabled,
+	[aria-disabled='true'],
+	[data-disabled] {
+		cursor: not-allowed;
+	}
+	/* iOS zooms on focus below 16px */
+	@media (pointer: coarse) {
+		input,
+		textarea,
+		select {
+			font-size: max(16px, 1em);
+		}
+		/* every tappable control gets a 44px target, not just Button */
+		[data-slot='button'],
+		[data-slot='dropdown-menu-trigger'],
+		[data-slot='pagination-link'],
+		[data-slot='pagination-previous'],
+		[data-slot='pagination-next'],
+		[data-slot='toggle'],
+		[data-slot='toggle-group-item'] {
+			min-height: 2.75rem;
+			min-width: 2.75rem;
+		}
+		[data-slot='input'],
+		[data-slot='input-group'],
+		[data-slot='select-trigger'] {
+			min-height: 2.75rem;
+		}
+	}
+}
+
+/* the one unprompted motion: a new address surfaces, then settles */
+@keyframes fresh {
+	from {
+		background-color: var(--secondary);
+	}
+}
+
+/* --- motion ------------------------------------------------------------- */
+
+/* keys press down into the panel: shadow flips inward, face drops 1px */
+[data-slot='button'] {
+	transition-property: color, background-color, border-color, box-shadow, translate;
+	transition-duration: 120ms;
+	transition-timing-function: var(--ease-snappy);
+}
+
+/* route changes: the page fades up; header, key bar and footer stay put */
+::view-transition-old(page) {
+	animation: 120ms var(--ease-snappy) both page-out;
+}
+::view-transition-new(page) {
+	animation: 220ms var(--ease-snappy) both page-in;
+}
+/* chrome stays live (no snapshot cross-fade), so its own CSS transitions show */
+::view-transition-old(header),
+::view-transition-old(bar),
+::view-transition-old(footer) {
+	display: none;
+}
+::view-transition-new(header),
+::view-transition-new(bar),
+::view-transition-new(footer) {
+	animation: none;
+}
+@keyframes page-out {
+	to {
+		opacity: 0;
+	}
+}
+@keyframes page-in {
+	from {
+		opacity: 0;
+		translate: 0 6px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*) {
+		animation-duration: 0s;
+	}
+	@keyframes page-in {
+		from {
+			opacity: 0;
+		}
+	}
+}
+
+/* --- panel system -------------------------------------------------------- */
+
+@utility panel {
+	min-width: 0;
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-raise);
+}
+
+@utility raised {
+	background: var(--raise);
+	border: 1px solid var(--border);
+	box-shadow: var(--shadow-raise);
+}
+
+@utility sunken {
+	background: var(--sunk);
+	box-shadow: var(--shadow-sunk);
+}
+
+/* engraved micro-labels: the mono face does the legend job */
+@utility legend {
+	font: 600 10px/1 var(--font-mono);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--muted-foreground);
+}
+
+/* Text fields, textareas and select triggers share one look: a recessed well at
+   rest that lifts to a lit surface with a soft halo while in use. */
+@utility field {
+	background: color-mix(in srgb, var(--sunk) 65%, var(--card));
+	border: 1px solid var(--border);
+	box-shadow: var(--shadow-sunk);
+	outline: none;
+	transition:
+		background-color 150ms var(--ease-snappy),
+		border-color 150ms var(--ease-snappy),
+		box-shadow 150ms var(--ease-snappy);
+	&:hover:not(:disabled) {
+		border-color: var(--color-control);
+	}
+	&:focus,
+	&:focus-visible,
+	&[data-state='open'],
+	&:has([data-slot='input-group-control']:focus) {
+		/* crisp 2px edge in the focus colour: the same language as buttons'
+		   outline, no pale halo */
+		background: var(--raise);
+		border-color: var(--ring);
+		box-shadow: 0 0 0 1px var(--ring);
+	}
+	&[aria-invalid='true'],
+	&:has([data-slot][aria-invalid='true']) {
+		border-color: var(--destructive);
+		box-shadow: 0 0 0 1px var(--destructive);
+	}
+}
+
+/* --- doodles (welcome page) ---------------------------------------------- */
+
+/* hand-drawn wavy rules, painted in the element's background colour */
+@utility squiggle-x {
+	mask: url('data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%206%27%3E%3Cpath%20d%3D%27M0%203Q6%20.5%2012%203T24%203%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.6%27%20stroke-linecap%3D%27round%27/%3E%3C/svg%3E')
+		repeat-x left center / 24px 6px;
+}
+@utility squiggle-y {
+	mask: url('data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%206%2024%27%3E%3Cpath%20d%3D%27M3%200Q.5%206%203%2012T3%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.6%27%20stroke-linecap%3D%27round%27/%3E%3C/svg%3E')
+		repeat-y center top / 6px 24px;
+}
+
+/* strokes draw themselves once; paths set pathLength="1" so one dash covers them */
+@utility doodle-draw {
+	stroke-dasharray: 1;
+	animation: doodle-draw 900ms 300ms var(--ease-snappy) both;
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
+}
+@keyframes doodle-draw {
+	from {
+		stroke-dashoffset: 1;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
