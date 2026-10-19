@@ -6,7 +6,7 @@ import { unseal } from './crypto.js';
 import * as store from './db.svelte.js';
 import { SealedBackup, type Sealed } from './schema.js';
 import { applyBackup } from './store.js';
-import { applyTheme, ask, plural } from './ui.svelte.js';
+import { ask, plural } from './ui.svelte.js';
 
 export const unlock = $state({
 	sealed: null as Sealed | null,
@@ -39,6 +39,9 @@ export async function restoreFile(file: File, mode: 'merge' | 'replace') {
 		if (sealed.success) {
 			backup = await askToUnlock(sealed.data.sealed);
 			if (!backup) return;
+		} else if (typeof backup === 'object' && backup !== null && 'sealed' in backup) {
+			// read as plain, it would parse as an empty backup and Replace would wipe everything
+			throw new Error('This backup is protected in a format this version can’t open.');
 		}
 		if (mode === 'replace') {
 			const go = await ask({
@@ -59,7 +62,6 @@ export async function restoreFile(file: File, mode: 'merge' | 'replace') {
 			});
 			if (go) store.setSetting('proxy', result.proxy);
 		}
-		applyTheme();
 		toast.success(
 			`Restored ${plural(result.newAccounts, 'account', 'accounts')} and ${plural(result.newAddresses, 'address')}`
 		);
@@ -70,11 +72,17 @@ export async function restoreFile(file: File, mode: 'merge' | 'replace') {
 	}
 }
 
+// module-held: Safari collects a detached input while its picker is open
+let picker: HTMLInputElement | undefined;
+
 /** Opens the system file picker straight away and restores what's chosen. */
 export function pickBackup(mode: 'merge' | 'replace' = 'merge') {
-	const input = document.createElement('input');
-	input.type = 'file';
-	input.accept = 'application/json,.json';
+	picker ??= Object.assign(document.createElement('input'), {
+		type: 'file',
+		accept: 'application/json,.json'
+	});
+	const input = picker;
+	input.value = '';
 	input.onchange = () => {
 		const file = input.files?.[0];
 		if (file) restoreFile(file, mode);

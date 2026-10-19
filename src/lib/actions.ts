@@ -1,5 +1,5 @@
-// The per-address actions, defined once for both the row menu and the
-// right-click menu.
+// Per-address and per-account actions, defined once for both the row menu and
+// the right-click menu.
 
 import type { Component } from 'svelte';
 import Copy from '@lucide/svelte/icons/copy';
@@ -8,8 +8,11 @@ import MailX from '@lucide/svelte/icons/mail-x';
 import MailCheck from '@lucide/svelte/icons/mail-check';
 import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 import Trash from '@lucide/svelte/icons/trash-2';
-import { checkStatus, copy, forgetAddress, setForwarding, ui } from './ui.svelte.js';
-import type { Address } from './store.js';
+import Check from '@lucide/svelte/icons/check';
+import LogOut from '@lucide/svelte/icons/log-out';
+import { checkStatus, copy, forgetAddress, logOut, setForwarding, ui } from './ui.svelte.js';
+import { db, selectAccount } from './db.svelte.js';
+import type { Account, Address } from './store.js';
 
 export type Action = {
 	label: string;
@@ -49,3 +52,14 @@ export const addressActions = (item: Address): Action[] => [
 		group: true
 	}
 ];
+
+export const accountActions = (account: Account): Action[] => {
+	const who = `${account.username}@duck.com`;
+	return [
+		...(account.username === db.current
+			? []
+			: [{ label: 'Use this account', icon: Check, run: () => selectAccount(account.username) }]),
+		{ label: 'Copy address', icon: Copy, run: () => copy(who) },
+		{ label: 'Log out', icon: LogOut, run: () => logOut(account), destructive: true, group: true }
+	];
+};

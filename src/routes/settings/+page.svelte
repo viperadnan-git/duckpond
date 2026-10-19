@@ -13,29 +13,29 @@
 	import { Label } from '#lib/components/ui/label/index.js';
 	import * as RadioGroup from '#lib/components/ui/radio-group/index.js';
 	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
-	import * as Select from '#lib/components/ui/select/index.js';
+	import AccountSelect from '#lib/components/AccountSelect.svelte';
 	import * as z from 'zod';
-	import { BackupPassphrase, DEFAULT_PROXY, Proxy, Theme, firstError } from '#lib/schema.js';
+	import {
+		BackupPassphrase,
+		DEFAULT_PROXY,
+		Proxy,
+		Theme,
+		firstError,
+		themeNames
+	} from '#lib/schema.js';
 	import { seal } from '#lib/crypto.js';
-	import { restoreFile } from '#lib/restore.svelte.js';
+	import { pickBackup } from '#lib/restore.svelte.js';
 	import * as store from '#lib/db.svelte.js';
 	import { buildBackup, toCsv, type BackupParts } from '#lib/store.js';
-	import { applyTheme, ask, plural, stamp } from '#lib/ui.svelte.js';
+	import { ask, plural, stamp } from '#lib/ui.svelte.js';
 
 	const { db } = store;
 
 	// --- appearance ---
-	const themes: { value: Theme; label: string }[] = [
-		{ value: 'system', label: 'Auto' },
-		{ value: 'light', label: 'Light' },
-		{ value: 'dark', label: 'Dark' }
-	];
-
 	function setTheme(value: string) {
 		const theme = Theme.safeParse(value);
 		if (!theme.success) return;
 		store.setSetting('theme', theme.data);
-		applyTheme();
 	}
 
 	// --- proxy ---
@@ -112,10 +112,7 @@
 
 	// which accounts the backup and CSV cover: all of them, or one
 	let backupScope = $state('');
-	const scopeOptions = $derived(store.accountOptions());
-	const activeBackupScope = $derived(
-		scopeOptions.some((o) => o.value === backupScope) ? backupScope : ''
-	);
+	const activeBackupScope = $derived(store.scopeOf(backupScope));
 	const scopeSlug = $derived(activeBackupScope || 'all');
 
 	async function download() {
@@ -157,19 +154,10 @@
 
 	// --- restore ---
 	let mode: 'merge' | 'replace' = $state('merge');
-	let fileInput: HTMLInputElement | undefined = $state();
-
-	function restore(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const file = input.files?.[0];
-		input.value = '';
-		if (file) restoreFile(file, mode);
-	}
 
 	// --- clear ---
 	let clearScope = $state('');
-	const options = $derived(store.accountOptions());
-	const activeScope = $derived(options.some((o) => o.value === clearScope) ? clearScope : '');
+	const activeScope = $derived(store.scopeOf(clearScope));
 	const doomed = $derived(store.addressesOf(activeScope));
 
 	async function clearAddresses() {
@@ -195,7 +183,6 @@
 		});
 		if (!go) return;
 		store.wipe();
-		applyTheme();
 		toast.success('Everything erased');
 	}
 </script>
@@ -227,12 +214,9 @@
 			aria-label="Theme"
 			class="w-full max-w-xs rounded-full p-[3px] sunken"
 		>
-			{#each themes as theme (theme.value)}
-				<ToggleGroup.Item
-					value={theme.value}
-					class="h-auto flex-1 px-2.5 py-1.5 pointer-coarse:py-3"
-				>
-					{theme.label}
+			{#each Object.entries(themeNames) as [value, label] (value)}
+				<ToggleGroup.Item {value} class="h-auto flex-1 px-2.5 py-1.5 pointer-coarse:py-3">
+					{label}
 				</ToggleGroup.Item>
 			{/each}
 		</ToggleGroup.Root>
@@ -271,16 +255,11 @@
 		{#if db.accounts.length > 1}
 			<div class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
 				<Label for="backup-scope" class="font-normal text-muted-foreground">Back up</Label>
-				<Select.Root type="single" bind:value={backupScope}>
-					<Select.Trigger id="backup-scope" class="min-w-44 max-[480px]:flex-1">
-						{scopeOptions.find((o) => o.value === activeBackupScope)?.label}
-					</Select.Trigger>
-					<Select.Content>
-						{#each scopeOptions as option (option.value)}
-							<Select.Item value={option.value} label={option.label} />
-						{/each}
-					</Select.Content>
-				</Select.Root>
+				<AccountSelect
+					id="backup-scope"
+					bind:value={backupScope}
+					class="min-w-44 max-[480px]:flex-1"
+				/>
 			</div>
 		{/if}
 		<div class="grid gap-3">
@@ -392,30 +371,14 @@
 				>
 			</Label>
 		</RadioGroup.Root>
-		<input
-			bind:this={fileInput}
-			type="file"
-			accept="application/json,.json"
-			class="hidden"
-			onchange={restore}
-		/>
-		<Button class="mt-4" variant="outline" onclick={() => fileInput?.click()}>
+		<Button class="mt-4" variant="outline" onclick={() => pickBackup(mode)}>
 			Choose a backup file
 		</Button>
 	{/snippet}
 
 	{#snippet clearing()}
 		<div class="flex flex-col gap-2 sm:flex-row">
-			<Select.Root type="single" bind:value={clearScope}>
-				<Select.Trigger class="sm:w-56" aria-label="Which addresses to delete">
-					{options.find((o) => o.value === activeScope)?.label}
-				</Select.Trigger>
-				<Select.Content>
-					{#each options as option (option.value)}
-						<Select.Item value={option.value} label={option.label} />
-					{/each}
-				</Select.Content>
-			</Select.Root>
+			<AccountSelect bind:value={clearScope} label="Which addresses to delete" class="sm:w-56" />
 			<Button variant="destructive" disabled={!doomed.length} onclick={clearAddresses}>
 				{doomed.length ? `Delete ${plural(doomed.length, 'address')}` : 'No addresses'}
 			</Button>

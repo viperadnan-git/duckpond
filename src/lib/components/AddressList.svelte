@@ -21,7 +21,7 @@
 	import { enter, flipOptions, leave } from '#lib/motion.js';
 	import AddressRow from './AddressRow.svelte';
 	import { addressActions } from '#lib/actions.js';
-	import { loadSuffixList, sameSite } from '#lib/domains.js';
+	import { loadSuffixList, siteOf } from '#lib/domains.js';
 	import Swap from './Swap.svelte';
 	import Panel from './Panel.svelte';
 	import EmptyState from './EmptyState.svelte';
@@ -30,9 +30,17 @@
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import * as Pagination from '#lib/components/ui/pagination/index.js';
 	import * as Select from '#lib/components/ui/select/index.js';
+	import AccountSelect from './AccountSelect.svelte';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import * as InputGroup from '#lib/components/ui/input-group/index.js';
-	import { accountOptions, addressesOf, db, removeAddresses, status } from '#lib/db.svelte.js';
+	import {
+		accountOptions,
+		addressesOf,
+		db,
+		removeAddresses,
+		scopeOf,
+		status
+	} from '#lib/db.svelte.js';
 	import { ask, copy, plural, ui } from '#lib/ui.svelte.js';
 
 	const PER_PAGE = 20;
@@ -57,15 +65,16 @@
 
 	const options = $derived(accountOptions());
 	// a removed account's filter would otherwise show nothing forever
-	const activeScope = $derived(options.some((o) => o.value === scope) ? scope : '');
+	const activeScope = $derived(scopeOf(scope));
 	const rows = $derived.by(() => {
 		const q = query.trim().toLowerCase();
+		const qSite = suffixes && q ? siteOf(q) : null;
 		return addressesOf(activeScope).filter(
 			(a) =>
 				(statusFilter === 'all' || (statusFilter === 'off') === (a.active === false)) &&
 				(!q ||
 					[a.address, a.note, a.site].some((f) => f?.toLowerCase().includes(q)) ||
-					(suffixes && !!a.site && sameSite(a.site, q)))
+					(!!qSite && !!a.site && siteOf(a.site) === qSite))
 		);
 	});
 
@@ -103,9 +112,14 @@
 		const search = pairs.length
 			? `?${pairs.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}`
 			: '';
-		if (restored && search !== location.search)
+		if (!restored || search === location.search) return;
+		// debounced: Safari throws when history is rewritten on every keystroke
+		const id = setTimeout(
 			// eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved path plus a query string
-			replaceState(`${resolve('/')}${search}`, {});
+			() => replaceState(`${resolve('/')}${search}`, {}),
+			300
+		);
+		return () => clearTimeout(id);
 	});
 
 	const filtered = $derived(statusFilter !== 'all' || !!activeScope);
@@ -114,10 +128,7 @@
 	const allOnPage = $derived(visible.length > 0 && pageSelected === visible.length);
 
 	function togglePage(checked: boolean) {
-		for (const a of visible) {
-			if (checked) selected.add(a.address);
-			else selected.delete(a.address);
-		}
+		for (const a of visible) toggle(a.address, checked);
 	}
 
 	/** Every address the current search and filters match, across all pages. */
@@ -152,8 +163,9 @@
 
 	// drop selections whose address was deleted elsewhere
 	$effect(() => {
-		for (const address of selected)
-			if (!db.addresses.some((a) => a.address === address)) selected.delete(address);
+		if (!selected.size) return;
+		const live = Object.fromEntries(db.addresses.map((a) => [a.address, true]));
+		for (const address of selected) if (!live[address]) selected.delete(address);
 	});
 
 	async function deleteSelected() {
@@ -304,16 +316,12 @@
 						</Select.Content>
 					</Select.Root>
 					{#if options.length > 2}
-						<Select.Root type="single" bind:value={scope}>
-							<Select.Trigger class="max-w-48" aria-label="Filter by account">
-								{options.find((o) => o.value === activeScope)?.label}
-							</Select.Trigger>
-							<Select.Content align="end">
-								{#each options as option (option.value)}
-									<Select.Item value={option.value} label={option.label} />
-								{/each}
-							</Select.Content>
-						</Select.Root>
+						<AccountSelect
+							bind:value={scope}
+							label="Filter by account"
+							align="end"
+							class="max-w-48"
+						/>
 					{/if}
 				</div>
 
@@ -423,7 +431,7 @@
 			<Pagination.Root
 				count={rows.length}
 				perPage={PER_PAGE}
-				bind:page
+				bind:page={() => current, (p) => (page = p)}
 				onPageChange={toListTop}
 				class="mt-4"
 			>

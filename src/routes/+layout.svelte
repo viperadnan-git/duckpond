@@ -1,21 +1,21 @@
 <script lang="ts">
 	import './layout.css';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { onNavigate } from '$app/navigation';
-	import { ModeWatcher } from 'mode-watcher';
+	import { ModeWatcher, setMode } from 'mode-watcher';
 	import { asset, resolve } from '$app/paths';
 	import { Toaster } from '#lib/components/ui/sonner/index.js';
 	import Nav from '#lib/components/Nav.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import Doodle from '#lib/components/Doodle.svelte';
 	import '@fontsource-variable/caveat';
-	import NoteSheet from '#lib/components/NoteSheet.svelte';
 	import Confirm from '#lib/components/Confirm.svelte';
-	import UnlockSheet from '#lib/components/UnlockSheet.svelte';
-	import { load } from '#lib/db.svelte.js';
-	import { applyTheme, ui } from '#lib/ui.svelte.js';
+	import { cancelUnlock, unlock } from '#lib/restore.svelte.js';
+	import { db, load, status } from '#lib/db.svelte.js';
+	import { KEY } from '#lib/store.js';
+	import { lazy, ui } from '#lib/ui.svelte.js';
 	import { site } from '#lib/site.js';
-	import { DEFAULT_PROXY } from '#lib/api.js';
+	import { DEFAULT_PROXY } from '#lib/schema.js';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -52,13 +52,39 @@
 		});
 	}
 
-	onMount(() => {
-		load();
-		applyTheme();
+	onMount(load);
+
+	// the sheets and their drawer code load the first time one opens, then stay
+	// mounted so they can animate closed
+	const noteSheet = lazy(
+		() => import('#lib/components/NoteSheet.svelte'),
+		() => (ui.noting = null)
+	);
+	const unlockSheet = lazy(() => import('#lib/components/UnlockSheet.svelte'), cancelUnlock);
+	$effect(() => {
+		if (ui.noting) noteSheet.load();
+		if (unlock.sealed) unlockSheet.load();
+	});
+
+	// Runs before any module. Blocked storage throws on access, which would stop
+	// mode-watcher from loading at all, so it gets an in-memory stand-in. Then
+	// prerendered pages show the welcome view, not the app, until storage is read.
+	const prePaint =
+		`<script>try{localStorage}catch{const m=new Map;Object.defineProperty(window,'localStorage',{value:{getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,''+v),removeItem:k=>m.delete(k),clear:()=>m.clear(),key:i=>[...m.keys()][i]??null,get length(){return m.size}}});document.documentElement.dataset.memoryStorage=''}` +
+		`try{if(!JSON.parse(localStorage.getItem(${JSON.stringify(KEY)}))?.accounts?.length)throw 0}catch{document.documentElement.dataset.firstRun=''}<` +
+		'/script>';
+
+	// the stored theme drives the page, whatever changed it
+	$effect(() => {
+		const theme = db.settings.theme;
+		// setMode reads mode-watcher's own state; tracking it would loop
+		if (status.ready) untrack(() => setMode(theme));
 	});
 </script>
 
 <svelte:head>
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- static, built from a constant -->
+	{@html prePaint}
 	<link rel="icon" href={asset('favicon.svg')} type="image/svg+xml" />
 	<link rel="apple-touch-icon" href={asset('apple-touch-icon.png')} />
 	<link rel="manifest" href={resolve('/manifest.webmanifest')} />
@@ -113,10 +139,7 @@
 		<div
 			class="flex h-14 panel items-center gap-3 bg-card/85 pr-2 pl-3 backdrop-blur-xl solid:bg-card"
 		>
-			<a
-				href={resolve('/')}
-				class="flex items-center gap-2.5 rounded-control outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-			>
+			<a href={resolve('/')} class="flex items-center gap-2.5 rounded-control focus-ring">
 				<img src={asset('favicon.svg')} alt="" width="30" height="30" class="size-[30px]" />
 				<span class="text-[19px] leading-none font-extrabold tracking-[-0.02em] lowercase"
 					>duck<span class="relative"
@@ -168,6 +191,6 @@
 <p class="sr-only" aria-live="polite">{ui.copied ? 'Copied to clipboard' : ''}</p>
 
 <Nav variant="bar" />
-<NoteSheet />
 <Confirm />
-<UnlockSheet />
+{#if noteSheet.component}<noteSheet.component />{/if}
+{#if unlockSheet.component}<unlockSheet.component />{/if}

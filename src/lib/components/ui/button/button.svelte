@@ -17,7 +17,9 @@
 					'hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground',
 				destructive:
 					'raised text-destructive hover:border-[color-mix(in_srgb,var(--destructive)_45%,var(--border))] hover:bg-[color-mix(in_srgb,var(--destructive)_10%,var(--raise))] focus-visible:ring-destructive/20',
-				link: 'text-primary underline-offset-4 hover:underline'
+				link: 'text-primary underline-offset-4 hover:underline',
+				// an unlit key that sits beside toggle keys
+				key: 'raised rounded-key text-muted-foreground hover:border-[color-mix(in_srgb,var(--link)_40%,var(--border))] hover:bg-[color-mix(in_srgb,var(--link)_8%,var(--raise))] hover:text-foreground'
 			},
 			size: {
 				default:

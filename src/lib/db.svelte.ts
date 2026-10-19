@@ -18,7 +18,7 @@ export const db: State = $state(empty());
 /** False until storage is read, so views can tell "loading" from "empty". */
 export const status = $state({ ready: false });
 
-/** No accounts yet; null until storage is read (app.html's `data-fresh` covers that gap). */
+/** No accounts yet; null until storage is read. */
 export const isFresh = () => (status.ready ? !db.accounts.length : null);
 
 export function load() {
@@ -28,6 +28,13 @@ export function load() {
 		/* blocked storage: run empty */
 	}
 	status.ready = true;
+	// set by the pre-paint script in +layout when storage is blocked
+	if ('memoryStorage' in document.documentElement.dataset)
+		toast.warning('This browser blocks site storage. Nothing is kept after this tab closes.');
+	// every save writes the whole state, so another tab's save must land here first
+	window.addEventListener('storage', (e) => {
+		if (e.key === KEY || e.key === null) Object.assign(db, parse(e.newValue));
+	});
 }
 
 /** A silent failure here means the user thinks an address was saved when it was not. */
@@ -59,21 +66,39 @@ export function accountOptions(): { value: string; label: string }[] {
 	];
 }
 
+/** A picked account, or '' (all) once that account is gone. */
+export const scopeOf = (username: string) => (accountFor(username) ? username : '');
+
 export const addressesOf = (username: string) =>
 	db.addresses.filter((a) => !username || a.account === username);
 
-export function addAccount(account: Account) {
+/** `known` are aliases DuckDuckGo already reports; its stats include them, so they aren't counted. */
+export function addAccount(account: Account, known: string[] = []) {
 	const existing = accountFor(account.username);
 	if (existing) Object.assign(existing, account, { addedAt: existing.addedAt });
 	else db.accounts.push({ label: '', addedAt: Date.now(), ...account });
 	db.current = account.username;
+	const have = Object.fromEntries(db.addresses.map((a) => [a.address, true]));
+	const now = Date.now();
+	const fresh = known.filter((a, i) => !have[a] && known.indexOf(a) === i);
+	db.addresses = [
+		...fresh.map((address) => ({ address, account: account.username, createdAt: now, note: '' })),
+		...db.addresses
+	];
+	save();
+}
+
+/** Account order is the order of the account keys on Home. */
+export function moveAccount(username: string, to: number) {
+	const from = db.accounts.findIndex((a) => a.username === username);
+	if (from === -1 || from === to || to < 0 || to >= db.accounts.length) return;
+	const [account] = db.accounts.splice(from, 1);
+	db.accounts.splice(to, 0, account);
 	save();
 }
 
 export function selectAccount(username: string) {
 	db.current = username;
-	const account = accountFor(username);
-	if (account) account.lastUsed = Date.now();
 	save();
 }
 
@@ -93,15 +118,11 @@ export function removeAccount(username: string) {
 	save();
 }
 
-/** `count` is off for aliases that arrive with the dashboard; its stats already include them. */
-export function recordAddress(address: string, account: string, { count = true } = {}) {
+export function recordAddress(address: string, account: string) {
 	if (db.addresses.some((a) => a.address === address)) return;
 	db.addresses.unshift({ address, account, createdAt: Date.now(), note: '' });
 	const acct = accountFor(account);
-	if (acct) {
-		if (count) acct.generated = (acct.generated || 0) + 1;
-		acct.lastUsed = Date.now();
-	}
+	if (acct) acct.generated = (acct.generated || 0) + 1;
 	save();
 }
 

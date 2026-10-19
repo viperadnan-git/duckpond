@@ -70,11 +70,12 @@
 
 	function startCooldown() {
 		cooldown = 30;
-		const id = setInterval(() => {
-			cooldown -= 1;
-			if (cooldown <= 0) clearInterval(id);
-		}, 1000);
 	}
+	$effect(() => {
+		if (cooldown <= 0) return;
+		const id = setTimeout(() => (cooldown -= 1), 1000);
+		return () => clearTimeout(id);
+	});
 
 	const sendPassphrase = () =>
 		run(async () => {
@@ -93,10 +94,7 @@
 				name,
 				otp
 			);
-			store.addAccount(account);
-			for (const address of addresses)
-				store.recordAddress(address, account.username, { count: false });
-			if (nextAlias) store.recordAddress(nextAlias, account.username, { count: false });
+			store.addAccount(account, nextAlias ? [nextAlias, ...addresses] : addresses);
 			added = account;
 			step = 'done';
 		});
@@ -129,7 +127,7 @@
 	<aside>
 		<a
 			href={resolve('/accounts')}
-			class="inline-flex items-center gap-1.5 rounded-control text-[13px] text-muted-foreground outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+			class="inline-flex items-center gap-1.5 rounded-control text-[13px] text-muted-foreground focus-ring hover:text-foreground"
 			><ArrowLeft class="size-4" />Accounts</a
 		>
 		<h1 class="mt-4 text-[28px] leading-tight font-bold tracking-[-0.025em] md:text-[32px]">
@@ -331,7 +329,7 @@
 						</div>
 						<button
 							type="button"
-							class="mt-4 rounded-control text-[13px] text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+							class="mt-4 rounded-control text-[13px] text-muted-foreground underline-offset-4 focus-ring hover:text-foreground hover:underline"
 							onclick={() => goTo('username')}
 						>
 							Use a different username

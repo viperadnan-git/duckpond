@@ -8,23 +8,19 @@
 import type * as z from 'zod';
 import { DashboardResponse, GenerateResponse, LoginResponse, StatusResponse } from './schema.js';
 
-export { DEFAULT_PROXY } from './schema.js';
-
 const BASE = 'https://quack.duckduckgo.com/api';
 
 export class ApiError extends Error {
 	status: number;
-	body: unknown;
 	constructor(status: number, body?: unknown) {
-		super(messageFor(status, body));
+		// DuckDuckGo sometimes reports a bad token in the body instead of a 401
+		if ((body as { error?: string } | null)?.error === 'invalid_token') status = 401;
+		super(messageFor(status));
 		this.status = status;
-		this.body = body;
 	}
 }
 
-function messageFor(status: number, body: unknown) {
-	if ((body as { error?: string } | null)?.error === 'invalid_token')
-		return 'Token rejected. Sign in again to get a new one.';
+function messageFor(status: number) {
 	switch (status) {
 		case 401:
 			return 'Token rejected. Sign in again to get a new one.';
@@ -89,7 +85,6 @@ export const requestPassphrase = (proxy: string, username: string) =>
 export type SignedIn = {
 	username: string;
 	token: string;
-	cohort: string;
 	forwarding: string;
 	generated: number;
 	nextAlias: string;
@@ -120,7 +115,6 @@ export async function signIn(
 	return {
 		username: user.username || username,
 		token: user.access_token,
-		cohort: user.cohort || '',
 		forwarding: user.email || '',
 		generated: dashboard.stats?.addresses_generated || 0,
 		// already minted; DuckDuckGo's own page shows it on load

@@ -12,6 +12,7 @@
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { pickBackup } from '#lib/restore.svelte.js';
 	import { enter } from '#lib/motion.js';
+	import Doodle from './Doodle.svelte';
 
 	const examples = [
 		'putt-salt-blunt@duck.com',
@@ -72,21 +73,12 @@
 		>
 			Every Duck Address you’ve made, in
 			<span class="relative whitespace-nowrap"
-				>one pond.<svg
-					aria-hidden="true"
-					viewBox="0 0 200 16"
-					preserveAspectRatio="none"
+				>one pond.<Doodle
+					shape="underline"
+					draw
+					width={3.5}
 					class="absolute -bottom-2 left-0 h-3 w-full text-link md:-bottom-3 md:h-4"
-					><path
-						class="doodle-draw"
-						pathLength="1"
-						d="M4 10C30 4 52 14 80 8S130 3 158 9 192 11 197 6"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="3.5"
-						stroke-linecap="round"
-					/></svg
-				></span
+				/></span
 			>
 		</h2>
 		<p
@@ -160,14 +152,10 @@
 					<span class="rounded-key px-3 py-2 text-[13px] font-semibold raised">shopping</span>
 				</div>
 				<div class="mt-4 grid items-center gap-3.5 min-[460px]:grid-cols-[minmax(0,1fr)_auto]">
-					<div
-						class="flex min-h-[84px] flex-col justify-center gap-2.5 overflow-hidden rounded-key p-3.5 sunken"
-					>
+					<div class="readout min-h-[84px]">
 						<span class="legend">Latest address</span>
 						{#key shown}
-							<span
-								in:enter={{ y: 6 }}
-								class="font-mono text-[clamp(15px,4.2vw,18px)] leading-[1.35] font-semibold tracking-[-0.02em]"
+							<span in:enter={{ y: 6 }} class="readout-text font-semibold tracking-[-0.02em]"
 								>{examples[shown]}</span
 							>
 						{/key}
@@ -255,19 +243,7 @@
 			>
 				Make your first address
 				<!-- a doodled arrow toward the button -->
-				<svg
-					aria-hidden="true"
-					viewBox="0 0 64 24"
-					class="hidden h-6 w-14 text-link md:block"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2.2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					><path class="doodle-draw" pathLength="1" d="M4 15C18 5 38 22 58 11" /><path
-						d="M49 6 59 11 51 19"
-					/></svg
-				>
+				<Doodle shape="arrow-right" draw class="hidden h-6 w-14 text-link md:block" />
 			</h2>
 			<p class="mt-1 text-sm text-muted-foreground">It takes about a minute.</p>
 		</div>

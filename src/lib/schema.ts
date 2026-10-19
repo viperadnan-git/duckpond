@@ -79,27 +79,28 @@ export const firstError = (error: z.ZodError) => error.issues[0]?.message ?? 'In
 
 // --- stored data ------------------------------------------------------------
 
+/** Display names, in the order the theme key steps through them. */
+export const themeNames = { system: 'Auto', light: 'Light', dark: 'Dark' } as const;
+
 export const Theme = z.enum(['system', 'light', 'dark']);
+
+/** Epoch ms that Date can hold; beyond it, toISOString throws. */
+const time = z.number().positive().max(8.64e15);
 
 export const Account = z.object({
 	username: z.string().min(1),
 	token: z.string().catch(''),
 	label: z.string().optional().catch(undefined),
-	cohort: z.string().optional().catch(undefined),
 	forwarding: z.string().optional().catch(undefined),
 	generated: z.number().nonnegative().optional().catch(undefined),
-	addedAt: z.number().optional().catch(undefined),
-	lastUsed: z.number().optional().catch(undefined)
+	addedAt: time.optional().catch(undefined)
 });
 
 export const Address = z.object({
 	address: z.string().min(1),
 	account: z.string().catch(''),
 	// a missing timestamp would otherwise sort and display as 1970
-	createdAt: z
-		.number()
-		.positive()
-		.catch(() => Date.now()),
+	createdAt: time.catch(() => Date.now()),
 	note: z.string().optional().catch(undefined),
 	site: z.string().optional().catch(undefined),
 	/** DuckDuckGo's forwarding state; missing means never checked (new aliases are active). */
@@ -144,7 +145,6 @@ export const DashboardResponse = z.object({
 	user: z.object({
 		username: z.string().optional(),
 		access_token: z.string().min(1),
-		cohort: z.string().optional().catch(undefined),
 		email: z.string().optional().catch(undefined),
 		next_alias: z.string().optional().catch(undefined)
 	}),

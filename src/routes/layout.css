@@ -6,8 +6,8 @@
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant solid (@media (prefers-reduced-transparency: reduce));
-/* first visit, before storage is read: set pre-paint in app.html */
-@custom-variant fresh (&:where([data-fresh] *));
+/* first visit, before storage is read: marked pre-paint in +layout.svelte */
+@custom-variant first-run (&:where([data-first-run] *));
 
 /* duckmail's panel system: DuckDuckGo email palette on moulded surfaces.
    Raised parts catch light on top; recessed parts (fields, readout, key
@@ -302,6 +302,54 @@
 @utility sunken {
 	background: var(--sunk);
 	box-shadow: var(--shadow-sunk);
+}
+
+/* keyboard focus for bare links and text buttons, matching the button ring */
+@utility focus-ring {
+	outline: none;
+	&:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
+	}
+}
+
+/* text that copies itself when clicked: an address or a username */
+@utility copyable {
+	border-radius: 4px;
+	text-align: left;
+	outline: none;
+	&:hover {
+		color: var(--link);
+	}
+	&:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
+	}
+}
+
+/* the generator's recessed display, and the big alias it shows */
+@utility readout {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 0.625rem;
+	overflow: hidden;
+	border-radius: var(--radius-key);
+	padding: 0.875rem;
+	background: var(--sunk);
+	box-shadow: var(--shadow-sunk);
+}
+
+@utility readout-text {
+	font-family: var(--font-mono);
+	font-size: clamp(15px, 4.2vw, 18px);
+	line-height: 1.35;
+	@media (width >= 48rem) {
+		font-size: 15px;
+	}
+	@media (width >= 64rem) {
+		font-size: 18px;
+	}
 }
 
 /* engraved micro-labels: the mono face does the legend job */

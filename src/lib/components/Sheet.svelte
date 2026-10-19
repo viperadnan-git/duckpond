@@ -9,17 +9,15 @@
 		open = $bindable(false),
 		title,
 		description,
-		children,
-		footer
+		children
 	}: {
 		open?: boolean;
 		title: string;
 		description?: string;
 		children?: Snippet;
-		footer?: Snippet;
 	} = $props();
 
-	const wide = new MediaQuery('min-width: 768px');
+	const wide = new MediaQuery('min-width: 48rem');
 </script>
 
 {#if wide.current}
@@ -30,7 +28,6 @@
 				{#if description}<Dialog.Description>{description}</Dialog.Description>{/if}
 			</Dialog.Header>
 			{@render children?.()}
-			{#if footer}<Dialog.Footer>{@render footer()}</Dialog.Footer>{/if}
 		</Dialog.Content>
 	</Dialog.Root>
 {:else}
@@ -41,7 +38,6 @@
 				{#if description}<Drawer.Description>{description}</Drawer.Description>{/if}
 			</Drawer.Header>
 			<div class="overflow-y-auto px-4">{@render children?.()}</div>
-			{#if footer}<Drawer.Footer>{@render footer()}</Drawer.Footer>{/if}
 		</Drawer.Content>
 	</Drawer.Root>
 {/if}

@@ -115,7 +115,7 @@
 
 	/** Back to first run: theme and proxy stay. */
 	function clear() {
-		store.replaceState({ ...$state.snapshot(db), accounts: [], addresses: [], current: null });
+		store.replaceState({ ...$state.snapshot(db), accounts: [], addresses: [] });
 		toast.success('Cleared all accounts and addresses');
 	}
 </script>

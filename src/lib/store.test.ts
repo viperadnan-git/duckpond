@@ -70,6 +70,30 @@ describe('applyBackup', () => {
 		expect(state.current).toBe('b');
 	});
 
+	it("replace keeps this browser's proxy", () => {
+		const mine = {
+			...src,
+			settings: { theme: 'dark' as const, proxy: 'https://mine.example/?u=' }
+		};
+		const { state, proxy } = applyBackup(mine, { app: 'duckpond', v: 1 }, 'replace');
+		expect(state.settings.proxy).toBe('https://mine.example/?u=');
+		expect(proxy).toBeNull();
+	});
+
+	it('repairs timestamps Date cannot hold', () => {
+		const { state } = applyBackup(
+			src,
+			{
+				app: 'duckpond',
+				v: 1,
+				accounts: [account('a')],
+				addresses: [address('y@duck.com', 'a', 9e15)]
+			},
+			'merge'
+		);
+		expect(() => toCsv(state.addresses)).not.toThrow();
+	});
+
 	it('offers a safe proxy but never applies one, and drops unsafe ones', () => {
 		const safe = applyBackup(
 			src,

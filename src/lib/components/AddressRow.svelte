@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
-	import Check from '@lucide/svelte/icons/check';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
@@ -33,7 +32,7 @@
 	data-fresh={ui.fresh === item.address}
 	data-selected={selected}
 	data-off={off}
-	aria-busy={pending.address === item.address}
+	aria-busy={pending[item.address]}
 	onanimationend={() => (ui.fresh = null)}
 >
 	<Checkbox
@@ -44,7 +43,7 @@
 	<div class="min-w-0">
 		<button
 			type="button"
-			class="flex max-w-full rounded-sm text-left font-mono text-[13px] leading-snug outline-none hover:text-link focus-visible:ring-3 focus-visible:ring-ring/40 in-aria-busy:animate-pulse in-data-[off=true]:text-muted-foreground in-data-[off=true]:line-through in-data-[off=true]:decoration-muted-foreground/50 motion-reduce:in-aria-busy:animate-none"
+			class="flex max-w-full copyable font-mono text-[13px] leading-snug in-aria-busy:animate-pulse in-data-[off=true]:text-muted-foreground in-data-[off=true]:line-through in-data-[off=true]:decoration-muted-foreground/50 motion-reduce:in-aria-busy:animate-none"
 			title="Copy {item.address}"
 			onclick={() => copy(item.address)}
 		>
@@ -65,9 +64,6 @@
 					>{/if}
 				<time datetime={new Date(item.createdAt).toISOString()}>{ago(item.createdAt)}</time>
 			</span>
-			{#snippet alt()}<span class="flex items-center gap-1 font-medium text-primary"
-					><Check class="size-3.5" />Copied to clipboard</span
-				>{/snippet}
 		</Swap>
 	</div>
 	<DropdownMenu.Root>

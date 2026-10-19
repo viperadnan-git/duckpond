@@ -5,7 +5,6 @@
 
 import { Backup, DEFAULT_PROXY, State, firstError, type Account } from './schema.js';
 
-export { isSafeProxy } from './schema.js';
 export type { Account, Address, Settings, State, Theme } from './schema.js';
 
 export const KEY = 'duckpond.v1';
@@ -25,10 +24,17 @@ export const empty = (): State => ({
 	settings: { theme: 'system', proxy: DEFAULT_PROXY }
 });
 
-/** Drops addresses whose account isn't present. An address can't outlive its account. */
+/** Drops addresses whose account isn't present; a missing `current` falls back to the first account. */
 export function withOwners(state: State): State {
 	const owners = new Set(state.accounts.map((a) => a.username));
-	return { ...state, addresses: state.addresses.filter((a) => owners.has(a.account)) };
+	return {
+		...state,
+		addresses: state.addresses.filter((a) => owners.has(a.account)),
+		current:
+			state.current === null || owners.has(state.current)
+				? state.current
+				: (state.accounts[0]?.username ?? null)
+	};
 }
 
 /** Hostile or half-written storage must not brick the app; the schema repairs what it can. */
@@ -42,8 +48,7 @@ export function parse(raw: string | null): State {
 	}
 }
 
-/** An account is its token: without it nothing can be generated, so they travel together. */
-/** `account` limits the file to one account and its addresses; omit for all. */
+/** Accounts travel with their tokens. `account` limits the file to one account and its addresses; omit for all. */
 export function buildBackup(src: State, parts: BackupParts, account?: string): Backup {
 	const out: Backup = { app: 'duckpond', v: 1, exportedAt: new Date().toISOString() };
 	const mine = <T extends { account: string } | { username: string }>(x: T) =>
@@ -72,7 +77,8 @@ export function applyBackup(src: State, file: unknown, mode: 'merge' | 'replace'
 	if (!parsed.success) throw new Error(firstError(parsed.error));
 	const backup = parsed.data;
 
-	const base = mode === 'replace' ? empty() : src;
+	// settings belong to this browser: replace keeps them, so the proxy prompt stays honest
+	const base = mode === 'replace' ? { ...empty(), settings: src.settings } : src;
 	const next: State = { ...base, settings: { ...base.settings } };
 
 	const incomingProxy = backup.settings?.proxy;
@@ -122,7 +128,6 @@ function mergeAccount(held: Account, incoming: Account): Account {
 		...incoming,
 		token: incoming.token || held.token,
 		generated: Math.max(incoming.generated || 0, held.generated || 0),
-		lastUsed: Math.max(incoming.lastUsed || 0, held.lastUsed || 0) || undefined,
 		addedAt: Number.isFinite(addedAt) ? addedAt : undefined
 	};
 }

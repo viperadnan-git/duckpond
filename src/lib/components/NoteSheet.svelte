@@ -2,6 +2,7 @@
 <script lang="ts">
 	import * as Field from '#lib/components/ui/field/index.js';
 	import * as z from 'zod';
+	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import Sheet from './Sheet.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -18,13 +19,17 @@
 	let address = $state('');
 	let errors: { site?: string; note?: string } = $state({});
 
+	// keyed on the open address only, so list changes don't reset what's typed
 	$effect(() => {
-		if (!ui.noting) return;
-		const entry = db.addresses.find((a) => a.address === ui.noting);
-		address = ui.noting;
-		site = entry?.site ?? '';
-		note = entry?.note ?? '';
-		errors = {};
+		const open = ui.noting;
+		if (!open) return;
+		untrack(() => {
+			const entry = db.addresses.find((a) => a.address === open);
+			address = open;
+			site = entry?.site ?? '';
+			note = entry?.note ?? '';
+			errors = {};
+		});
 	});
 
 	function save() {
