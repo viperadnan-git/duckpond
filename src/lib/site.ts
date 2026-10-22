@@ -13,6 +13,12 @@ export const site = {
 		url: 'https://viperadnan.com',
 		twitter: '@viperadn'
 	},
+	/** Default relay for DuckDuckGo's API; the target URL is appended, encoded. Swappable in Settings. */
+	proxy: {
+		url: 'https://cors.viperadnan.com/?url=',
+		/** Who runs it, as shown on the About page. */
+		operator: 'Duckpond’s author'
+	},
 	/** Light and dark backgrounds, mirrored in layout.css. */
 	themeColor: { light: '#f0f4ff', dark: '#111111' }
 } as const;

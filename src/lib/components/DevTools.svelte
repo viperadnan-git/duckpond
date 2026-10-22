@@ -103,8 +103,9 @@
 
 	/** Shows the "sign in again" path without waiting for a real 401. */
 	function expireToken() {
-		if (!db.current) return;
-		store.clearToken(db.current);
+		const account = store.currentAccount();
+		if (!account) return;
+		store.markToken(account.username, account.token, false);
 		toast.success(`Expired the token for ${db.current}`);
 	}
 
@@ -144,7 +145,7 @@
 		<Button variant="outline" disabled={!db.current} onclick={addAddresses}>
 			Add 100 addresses
 		</Button>
-		<Button variant="outline" disabled={!store.currentAccount()?.token} onclick={expireToken}
+		<Button variant="outline" disabled={!store.canUse(store.currentAccount())} onclick={expireToken}
 			>Expire token</Button
 		>
 		<Button variant="outline" onclick={copyState}>Copy state</Button>

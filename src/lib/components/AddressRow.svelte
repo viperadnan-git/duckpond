@@ -6,7 +6,7 @@
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import { displayName } from '#lib/db.svelte.js';
 	import { ago, copy, pending, ui } from '#lib/ui.svelte.js';
-	import { addressActions } from '#lib/actions.js';
+	import { addressActions, addressNote } from '#lib/actions.js';
 	import { siteLabel } from '#lib/domains.js';
 	import Swap from './Swap.svelte';
 	import type { Address } from '#lib/store.js';
@@ -78,11 +78,19 @@
 				{#if action.group}<DropdownMenu.Separator />{/if}
 				<DropdownMenu.Item
 					variant={action.destructive ? 'destructive' : 'default'}
+					disabled={action.disabled}
 					onSelect={action.run}
 				>
 					<action.icon />{action.label}
 				</DropdownMenu.Item>
 			{/each}
+			{@const note = addressNote(item)}
+			{#if note}
+				<DropdownMenu.Separator />
+				<DropdownMenu.Label class="max-w-60 text-xs font-normal text-muted-foreground"
+					>{note}</DropdownMenu.Label
+				>
+			{/if}
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 </div>

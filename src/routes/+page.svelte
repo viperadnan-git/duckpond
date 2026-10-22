@@ -16,13 +16,13 @@
 	import Doodle from '#lib/components/Doodle.svelte';
 	import { enter } from '#lib/motion.js';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import { currentAccount, status } from '#lib/db.svelte.js';
+	import { canUse, currentAccount, status } from '#lib/db.svelte.js';
 	import { copy, generate, latest, plural, ui } from '#lib/ui.svelte.js';
 	import { site } from '#lib/site.js';
 
 	const account = $derived(currentAccount());
 	const last = $derived(latest());
-	const canGenerate = $derived(!!account?.token && !ui.generating);
+	const canGenerate = $derived(canUse(account) && !ui.generating);
 
 	/** N new address, C copy latest, / search. Ignored while typing or with a dialog open. */
 	function shortcut(e: KeyboardEvent) {
@@ -34,7 +34,7 @@
 			return;
 		const key = e.key.toLowerCase();
 		if (key === 'n' && canGenerate) generate();
-		else if (key === 'c' && last) copy(last.address, 'hero');
+		else if (key === 'c' && last) copy(last.address, 'copy-button');
 		else if (key === '/') document.getElementById('address-search')?.focus();
 		else return;
 		e.preventDefault();
@@ -124,7 +124,7 @@
 							{/key}
 						{:else}
 							<p class="readout-text text-muted-foreground">
-								{#if status.ready && account}
+								{#if status.ready && canUse(account)}
 									<span class="inline-flex items-center gap-2"
 										>Press new address<Doodle
 											shape="arrow-right"
@@ -163,9 +163,9 @@
 						disabled={!last}
 						title="Copy (C)"
 						aria-keyshortcuts="C"
-						onclick={() => last && copy(last.address, 'hero')}
+						onclick={() => last && copy(last.address, 'copy-button')}
 					>
-						<Swap swapped={ui.copied === 'hero'} class="justify-items-center">
+						<Swap swapped={ui.copied === 'copy-button'} class="justify-items-center">
 							<span class="flex items-center gap-1.5"><Copy />Copy</span>
 							{#snippet alt()}<span class="flex items-center gap-1.5"><Check />Copied</span
 								>{/snippet}

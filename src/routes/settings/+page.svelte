@@ -27,7 +27,7 @@
 	import { pickBackup } from '#lib/restore.svelte.js';
 	import * as store from '#lib/db.svelte.js';
 	import { buildBackup, toCsv, type BackupParts } from '#lib/store.js';
-	import { ask, plural, stamp } from '#lib/ui.svelte.js';
+	import { ask, checkTokens, plural, stamp } from '#lib/ui.svelte.js';
 
 	const { db } = store;
 
@@ -51,6 +51,8 @@
 		proxyError = '';
 		store.setSetting('proxy', result.data);
 		proxy = result.data;
+		// verdicts reached through the old proxy may be its fault
+		checkTokens(true);
 		toast.success('Proxy saved');
 	}
 

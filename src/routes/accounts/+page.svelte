@@ -223,7 +223,7 @@
 											>
 												<Ellipsis />
 											</DropdownMenu.Trigger>
-											<DropdownMenu.Content align="end" class="min-w-52">
+											<DropdownMenu.Content align="end" class="min-w-60">
 												<DropdownMenu.Label
 													class="text-xs font-normal text-muted-foreground tabular-nums sm:hidden"
 												>
@@ -233,6 +233,7 @@
 													{#if action.group}<DropdownMenu.Separator />{/if}
 													<DropdownMenu.Item
 														variant={action.destructive ? 'destructive' : 'default'}
+														disabled={action.disabled}
 														onSelect={action.run}
 													>
 														<action.icon />{action.label}
@@ -246,12 +247,13 @@
 						{/snippet}
 					</ContextMenu.Trigger>
 					<!-- the trigger is the whole list; focusing it on close would scroll to its top -->
-					<ContextMenu.Content class="min-w-48" onCloseAutoFocus={(e) => e.preventDefault()}>
+					<ContextMenu.Content class="min-w-60" onCloseAutoFocus={(e) => e.preventDefault()}>
 						{#if targetAccount}
 							{#each accountActions(targetAccount) as action (action.label)}
 								{#if action.group}<ContextMenu.Separator />{/if}
 								<ContextMenu.Item
 									variant={action.destructive ? 'destructive' : 'default'}
+									disabled={action.disabled}
 									onSelect={action.run}
 								>
 									<action.icon />{action.label}

@@ -80,11 +80,42 @@ export async function copy(text: string | Promise<string>, key?: string) {
 	return true;
 }
 
+/** When each token was last asked about, so failing checks don't repeat on every tab switch. */
+const asked: Record<string, number> = Object.create(null);
+const BACKOFF = 5 * 60 * 1000;
+
+/** Asks DuckDuckGo about tokens not heard from in a while; `force` after the proxy changes. */
+export function checkTokens(force = false) {
+	for (const account of db.accounts) {
+		const { username, token } = account;
+		if (!token) continue;
+		if (!force && (!store.isStale(account) || Date.now() - (asked[token] ?? 0) < BACKOFF)) continue;
+		asked[token] = Date.now();
+		api
+			.checkToken(db.settings.proxy, username, token)
+			.then((valid) => store.markToken(username, token, valid))
+			// offline or a proxy fault says nothing about the token
+			.catch(() => {});
+	}
+}
+
+/** Runs a token call and records the verdict: accepted, or refused on a 401. */
+async function authed<T>({ username, token }: Account, run: (token: string) => Promise<T>) {
+	try {
+		const result = await run(token);
+		store.markToken(username, token, true);
+		return result;
+	} catch (err) {
+		if (err instanceof api.ApiError && err.status === 401) store.markToken(username, token, false);
+		throw err;
+	}
+}
+
 export async function generate() {
 	const account = store.currentAccount();
-	if (!account?.token || ui.generating) return;
+	if (!store.canUse(account) || ui.generating) return;
 	ui.generating = true;
-	const minted = api.generate(db.settings.proxy, account.token);
+	const minted = authed(account, (token) => api.generate(db.settings.proxy, token));
 	// the hero shows it, so the hero confirms the copy
 	const copied = copy(minted, 'hero');
 	try {
@@ -102,19 +133,14 @@ export async function generate() {
 /** Addresses with a status request in flight, so their controls can show it. */
 export const pending: Record<string, boolean> = $state({});
 
-function tokenFor(address: string) {
-	const owner = db.addresses.find((a) => a.address === address)?.account ?? '';
-	const token = store.accountFor(owner)?.token;
-	if (!token) toast.error(`Sign in to ${owner || 'its account'} again to manage this address.`);
-	return token;
-}
-
+/** Menus disable these actions when the owner can't use its token. */
 async function withStatus(address: string, run: (token: string) => Promise<boolean>) {
-	const token = tokenFor(address);
-	if (!token || pending[address]) return null;
+	const owner = db.addresses.find((a) => a.address === address)?.account ?? '';
+	const account = store.accountFor(owner);
+	if (!store.canUse(account) || pending[address]) return null;
 	pending[address] = true;
 	try {
-		const active = await run(token);
+		const active = await authed(account, run);
 		store.setActive(address, active);
 		return active;
 	} catch (err) {

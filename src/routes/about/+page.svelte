@@ -5,7 +5,9 @@
 	import { Kbd } from '#lib/components/ui/kbd/index.js';
 	import Doodle from '#lib/components/Doodle.svelte';
 	import * as Accordion from '#lib/components/ui/accordion/index.js';
+	import { resolve } from '$app/paths';
 	import { site } from '#lib/site.js';
+	import { DEFAULT_PROXY } from '#lib/schema.js';
 
 	const faq = [
 		{
@@ -91,6 +93,34 @@
 			<a href="https://thenounproject.com/" rel="external" class="underline">Noun Project</a>
 			(CC BY 3.0).
 		</p>
+	</Panel>
+
+	<Panel title="CORS proxy" id="proxy">
+		<div class="space-y-3 text-[15px] leading-relaxed">
+			<p>
+				DuckDuckGo’s API doesn’t allow requests from other websites, so your browser blocks Duckpond
+				from calling it directly. A CORS proxy passes each request on to DuckDuckGo and returns the
+				reply with the headers your browser needs.
+			</p>
+			<p class="text-muted-foreground">
+				Every request goes through the proxy, including your access token and the passphrases you
+				enter to sign in. Use a proxy you trust, the same as you would any server that handles your
+				token.
+			</p>
+			<p class="text-muted-foreground">
+				The default, <span class="font-mono text-[13px] text-foreground"
+					>{new URL(DEFAULT_PROXY).host}</span
+				>, is run by {site.proxy.operator}. To use your own, enter its prefix in
+				<a
+					href="{resolve('/settings')}#cors-proxy"
+					class="text-foreground underline underline-offset-4">Settings</a
+				>. Duckpond adds the encoded DuckDuckGo URL to the end. It must pass on the
+				<span class="font-mono text-[13px]">Authorization</span>,
+				<span class="font-mono text-[13px]">Content-Type</span> and
+				<span class="font-mono text-[13px]">User-Agent</span> headers and the request body, because DuckDuckGo
+				refuses requests without a browser User-Agent.
+			</p>
+		</div>
 	</Panel>
 
 	<Panel title="Keyboard shortcuts" id="shortcuts">

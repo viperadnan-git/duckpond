@@ -8,12 +8,13 @@
 	import Nav from '#lib/components/Nav.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import Doodle from '#lib/components/Doodle.svelte';
+	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import '@fontsource-variable/caveat';
 	import Confirm from '#lib/components/Confirm.svelte';
 	import { cancelUnlock, unlock } from '#lib/restore.svelte.js';
 	import { db, load, status } from '#lib/db.svelte.js';
 	import { KEY } from '#lib/store.js';
-	import { lazy, ui } from '#lib/ui.svelte.js';
+	import { checkTokens, lazy, ui } from '#lib/ui.svelte.js';
 	import { site } from '#lib/site.js';
 	import { DEFAULT_PROXY } from '#lib/schema.js';
 	import type { LayoutProps } from './$types';
@@ -52,7 +53,10 @@
 		});
 	}
 
-	onMount(load);
+	onMount(() => {
+		load();
+		checkTokens();
+	});
 
 	// the sheets and their drawer code load the first time one opens, then stay
 	// mounted so they can animate closed
@@ -108,6 +112,9 @@
 </svelte:head>
 
 <svelte:window onscroll={onScroll} />
+<svelte:document
+	onvisibilitychange={() => document.visibilityState === 'visible' && checkTokens()}
+/>
 
 <ModeWatcher themeColors={site.themeColor} />
 <Toaster
@@ -171,18 +178,37 @@
 
 		<footer
 			style:view-transition-name="footer"
-			class="mt-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-t px-1 pt-4 text-xs text-muted-foreground"
+			class="mt-12 grid gap-4 border-t px-1 pt-5 text-xs text-muted-foreground"
 		>
-			<p class="flex-1 basis-64">
-				Tokens and addresses stay in this browser. Requests reach DuckDuckGo through a CORS proxy.
+			<div class="flex flex-wrap items-start justify-between gap-x-10 gap-y-4">
+				<p class="max-w-md leading-relaxed">
+					<ShieldCheck class="mr-1 inline size-3.5 -translate-y-px align-middle text-link" />
+					Tokens and addresses stay in this browser. Requests to DuckDuckGo pass through a CORS proxy.
+					<a
+						href="{resolve('/about')}#proxy"
+						class="rounded-control font-medium whitespace-nowrap text-foreground underline underline-offset-4 focus-ring"
+						>Learn more</a
+					>
+				</p>
+				<nav aria-label="Footer" class="flex flex-wrap gap-x-5 gap-y-2">
+					<a href={resolve('/about')} class="rounded-control focus-ring hover:text-foreground"
+						>About</a
+					>
+					<a
+						href={site.repo}
+						rel="external"
+						class="rounded-control focus-ring hover:text-foreground">Source</a
+					>
+					<a
+						href="https://duckduckgo.com/email/"
+						rel="external"
+						class="rounded-control focus-ring hover:text-foreground">DuckDuckGo Email</a
+					>
+				</nav>
+			</div>
+			<p class="text-[11px] text-muted-foreground/80">
+				Independent and open source under the MIT license. Not affiliated with DuckDuckGo.
 			</p>
-			<nav aria-label="Footer" class="flex gap-4">
-				<a href={resolve('/about')} class="hover:text-foreground">About</a>
-				<a href={site.repo} rel="external" class="hover:text-foreground">Source</a>
-				<a href="https://duckduckgo.com/email/" rel="external" class="hover:text-foreground"
-					>DuckDuckGo Email</a
-				>
-			</nav>
 		</footer>
 	</div>
 </div>

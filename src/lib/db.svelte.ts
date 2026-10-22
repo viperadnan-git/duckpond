@@ -77,6 +77,10 @@ export const accountFor = (username: string | null) =>
 
 export const currentAccount = () => accountFor(db.current);
 
+/** Has a token DuckDuckGo hasn't refused, so token calls can run. */
+export const canUse = (account: Account | null | undefined): account is Account =>
+	!!account?.token && !account.rejected;
+
 export const displayName = (username: string) => {
 	const account = accountFor(username);
 	return account ? account.label || account.username : username;
@@ -99,8 +103,15 @@ export const addressesOf = (username: string) =>
 /** `known` are aliases DuckDuckGo already reports; its stats include them, so they aren't counted. */
 export function addAccount(account: Account, known: string[] = []) {
 	const existing = accountFor(account.username);
-	if (existing) Object.assign(existing, account, { addedAt: existing.addedAt });
-	else db.accounts.push({ label: '', addedAt: Date.now(), ...account });
+	// callers add only tokens DuckDuckGo just accepted
+	const checked = { ...account, rejected: undefined, checkedAt: Date.now() };
+	if (existing)
+		Object.assign(existing, checked, {
+			addedAt: existing.addedAt,
+			// a token sign-in brings no stats; keep the count
+			generated: Math.max(account.generated ?? 0, existing.generated ?? 0)
+		});
+	else db.accounts.push({ label: '', addedAt: Date.now(), ...checked });
 	db.current = account.username;
 	keep();
 	const have = Object.fromEntries(db.addresses.map((a) => [a.address, true]));
@@ -127,11 +138,31 @@ export function selectAccount(username: string) {
 	save();
 }
 
-/** Called when DuckDuckGo rejects a token, so the UI stops offering to generate. */
-export function clearToken(username: string) {
+/** A verdict is re-asked after this long; a refusal sooner, so a passing fault can't lock an account out. */
+const STALE = 6 * 60 * 60 * 1000;
+const RETRY = 5 * 60 * 1000;
+
+export function isStale(account: Account) {
+	const age = Date.now() - (account.checkedAt ?? 0);
+	// a clock moved backwards leaves the stamp in the future
+	return age < 0 || age >= (account.rejected ? RETRY : STALE);
+}
+
+/** Records DuckDuckGo's verdict on a token, unless the account has a newer one by now. */
+export function markToken(username: string, token: string, valid: boolean) {
+	const account = accountFor(username);
+	if (!account || account.token !== token) return;
+	// an accepted token that's still fresh isn't worth a full save
+	if (valid && !account.rejected && !isStale(account)) return;
+	account.rejected = valid ? undefined : true;
+	account.checkedAt = Date.now();
+	save();
+}
+
+export function setForwardingAddress(username: string, email: string) {
 	const account = accountFor(username);
 	if (!account) return;
-	account.token = '';
+	account.forwarding = email;
 	save();
 }
 

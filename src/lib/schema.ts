@@ -2,8 +2,9 @@
 // files, API responses, and form input.
 
 import * as z from 'zod';
+import { site } from './site.js';
 
-export const DEFAULT_PROXY = 'https://cors.viperadnan.com/?url=';
+export const DEFAULT_PROXY = site.proxy.url;
 
 /** One bad entry drops itself, not the whole list. */
 const listOf = <T extends z.ZodType>(item: T) =>
@@ -47,6 +48,14 @@ export const Passphrase = z
 	.trim()
 	.min(1, 'Enter the passphrase from the email.')
 	.refine((s) => s.split(/\s+/).length === 4, 'The passphrase is four words. Enter all four.');
+
+export const Forwarding = z
+	.string()
+	.trim()
+	.toLowerCase()
+	// loose on purpose: DuckDuckGo judges the rest, and z.email() refuses IDN domains
+	.regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'That doesn’t look like an email address.')
+	.refine((s) => !s.endsWith('@duck.com'), 'A Duck address can’t forward to another Duck address.');
 
 export const Token = z
 	.string()
@@ -93,7 +102,11 @@ export const Account = z.object({
 	label: z.string().optional().catch(undefined),
 	forwarding: z.string().optional().catch(undefined),
 	generated: z.number().nonnegative().optional().catch(undefined),
-	addedAt: time.optional().catch(undefined)
+	addedAt: time.optional().catch(undefined),
+	/** Last time DuckDuckGo accepted or refused the token. */
+	checkedAt: time.optional().catch(undefined),
+	/** DuckDuckGo refused the token; kept so a wrong 401 can't destroy it. */
+	rejected: z.boolean().optional().catch(undefined)
 });
 
 export const Address = z.object({
@@ -156,6 +169,13 @@ export const DashboardResponse = z.object({
 export const GenerateResponse = z.object({ address: z.string().min(1) });
 
 export const StatusResponse = z.object({ active: z.boolean() });
+
+export const ValidResponse = z.object({ valid: z.boolean() });
+
+export const ChangeResponse = z.object({
+	status: z.enum(['changed', 'verify', 'confirm']),
+	hash: z.string().optional()
+});
 
 /** A backup sealed with a passphrase; the inner JSON is a plain Backup. */
 export const SealedBackup = z.object({

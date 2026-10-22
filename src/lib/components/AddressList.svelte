@@ -20,7 +20,7 @@
 	import { fade } from 'svelte/transition';
 	import { enter, flipOptions, leave } from '#lib/motion.js';
 	import AddressRow from './AddressRow.svelte';
-	import { addressActions } from '#lib/actions.js';
+	import { addressActions, addressNote } from '#lib/actions.js';
 	import { loadSuffixList, siteOf } from '#lib/domains.js';
 	import Swap from './Swap.svelte';
 	import Panel from './Panel.svelte';
@@ -414,6 +414,7 @@
 							{#if action.group}<ContextMenu.Separator />{/if}
 							<ContextMenu.Item
 								variant={action.destructive ? 'destructive' : 'default'}
+								disabled={action.disabled}
 								onSelect={action.run}
 							>
 								<action.icon />{action.label}
@@ -423,6 +424,13 @@
 						<ContextMenu.Item onSelect={() => toggle(address, !selected.has(address))}>
 							<SquareCheck />{selected.has(address) ? 'Deselect' : 'Select'}
 						</ContextMenu.Item>
+						{@const note = addressNote(targetItem)}
+						{#if note}
+							<ContextMenu.Separator />
+							<ContextMenu.Label class="max-w-60 text-xs font-normal text-muted-foreground"
+								>{note}</ContextMenu.Label
+							>
+						{/if}
 					{/if}
 				</ContextMenu.Content>
 			</ContextMenu.Root>

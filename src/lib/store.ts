@@ -120,13 +120,23 @@ export function applyBackup(src: State, file: unknown, mode: 'merge' | 'replace'
 	return { state: next, newAccounts, newAddresses, proxy };
 }
 
+/** A token's verdict stays with that token; for the same token, the newer one wins. */
+function verdict(token: string, ...copies: Account[]) {
+	const [latest] = copies
+		.filter((a) => a.token === token)
+		.sort((a, b) => (b.checkedAt ?? 0) - (a.checkedAt ?? 0));
+	return { checkedAt: latest?.checkedAt, rejected: latest?.rejected };
+}
+
 /** Counters only move forward, whichever copy is staler. */
 function mergeAccount(held: Account, incoming: Account): Account {
+	const token = incoming.token || held.token;
 	const addedAt = Math.min(incoming.addedAt || Infinity, held.addedAt || Infinity);
 	return {
 		...held,
 		...incoming,
-		token: incoming.token || held.token,
+		token,
+		...verdict(token, held, incoming),
 		generated: Math.max(incoming.generated || 0, held.generated || 0),
 		addedAt: Number.isFinite(addedAt) ? addedAt : undefined
 	};

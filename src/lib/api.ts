@@ -6,19 +6,49 @@
 // client's own.
 
 import type * as z from 'zod';
-import { DashboardResponse, GenerateResponse, LoginResponse, StatusResponse } from './schema.js';
+import {
+	ChangeResponse,
+	DashboardResponse,
+	GenerateResponse,
+	LoginResponse,
+	StatusResponse,
+	ValidResponse
+} from './schema.js';
 
 const BASE = 'https://quack.duckduckgo.com/api';
 
 export class ApiError extends Error {
 	status: number;
+	/** DuckDuckGo's `error` code, if it sent one. */
+	code: string;
 	constructor(status: number, body?: unknown) {
 		// DuckDuckGo sometimes reports a bad token in the body instead of a 401
-		if ((body as { error?: string } | null)?.error === 'invalid_token') status = 401;
-		super(messageFor(status));
+		const code = (body as { error?: string } | null)?.error ?? '';
+		if (code === 'invalid_token') status = 401;
+		super(Object.hasOwn(codes, code) ? codes[code] : messageFor(status));
 		this.status = status;
+		this.code = code;
 	}
 }
+
+const WRONG_PASSPHRASE = 'Wrong passphrase. Check the email and try again.';
+
+/** DuckDuckGo's own error codes, from its email web app. */
+export const codes: Record<string, string> = {
+	max_number_of_addresses_reached:
+		'Daily limit reached. DuckDuckGo allows 30 new addresses a day; try again tomorrow.',
+	invalid_otp: WRONG_PASSPHRASE,
+	invalid_login_credentials: WRONG_PASSPHRASE,
+	invalid_confirm_credentials: WRONG_PASSPHRASE,
+	expired_otp: 'That passphrase expired. Send a new one.',
+	unrecognized_username: 'DuckDuckGo doesn’t recognize that Duck username.',
+	invalid_email_address: 'That doesn’t look like an email address.',
+	duck_address_not_allowed: 'A Duck address can’t forward to another Duck address.',
+	email_address_not_changed: 'Mail already forwards there. Enter a different address.',
+	change_email_address_not_allowed:
+		'DuckDuckGo blocks this change for new accounts. Try again in a few days.',
+	change_email_quota_reached: 'Too many attempts. Wait a few minutes and try again.'
+};
 
 function messageFor(status: number) {
 	switch (status) {
@@ -37,12 +67,17 @@ function messageFor(status: number) {
 	}
 }
 
-type CallOptions = { method?: string; token?: string; params?: Record<string, string> };
+type CallOptions = {
+	method?: string;
+	token?: string;
+	params?: Record<string, string>;
+	body?: FormData;
+};
 
 async function call(
 	proxy: string,
 	path: string,
-	{ method = 'GET', token, params }: CallOptions = {}
+	{ method = 'GET', token, params, body }: CallOptions = {}
 ) {
 	const target = new URL(BASE + path);
 	for (const [k, v] of Object.entries(params ?? {})) target.searchParams.set(k, v);
@@ -51,21 +86,22 @@ async function call(
 	try {
 		res = await fetch(proxy + encodeURIComponent(target.toString()), {
 			method,
-			headers: token ? { Authorization: `Bearer ${token}` } : {}
+			headers: token ? { Authorization: `Bearer ${token}` } : {},
+			body
 		});
 	} catch {
 		throw new ApiError(0);
 	}
 
 	const text = await res.text();
-	let body: unknown = null;
+	let reply: unknown = null;
 	try {
-		body = JSON.parse(text);
+		reply = JSON.parse(text);
 	} catch {
 		/* non-JSON bodies stay null */
 	}
-	if (!res.ok) throw new ApiError(res.status, body);
-	return body;
+	if (!res.ok) throw new ApiError(res.status, reply);
+	return reply;
 }
 
 /** Parses a response, or throws `message` when DuckDuckGo changed its shape. */
@@ -103,7 +139,7 @@ export async function signIn(
 	const login = expect(
 		LoginResponse,
 		await call(proxy, '/auth/login', { params: { user: username, otp: passphrase } }),
-		'Wrong passphrase. Check the email and try again.'
+		WRONG_PASSPHRASE
 	);
 	const dashboard = expect(
 		DashboardResponse,
@@ -153,4 +189,87 @@ export async function setStatus(proxy: string, token: string, address: string, a
 		params: { address: bare(address), active: String(active) }
 	});
 	return expect(StatusResponse, body, 'DuckDuckGo returned no status.').active;
+}
+
+/** Whether DuckDuckGo still accepts an access token. Mints nothing. */
+export async function checkToken(proxy: string, username: string, token: string) {
+	try {
+		// Duck usernames are lowercase; older token sign-ins kept whatever was typed
+		const body = await call(proxy, '/auth/validate-autofill', {
+			token,
+			params: { user: username.toLowerCase() }
+		});
+		return expect(ValidResponse, body, 'DuckDuckGo returned no token status.').valid;
+	} catch (err) {
+		if (err instanceof ApiError && err.status === 401) return false;
+		throw err;
+	}
+}
+
+// Changing the forwarding address, as DuckDuckGo's own site does it: a
+// passphrase to the current address proves the account, then one to the new
+// address proves that.
+
+const CHANGE = 'change_email_address';
+
+/** Emails a passphrase to the address mail forwards to now. */
+export const requestChangePassphrase = (proxy: string, username: string) =>
+	call(proxy, '/auth/confirmlink', { params: { action: CHANGE, user: username } });
+
+/** Trades that passphrase for a token that can change the address. */
+export async function confirmChange(proxy: string, username: string, passphrase: string) {
+	const body = await call(proxy, '/auth/confirm', {
+		params: { action: CHANGE, user: username, otp: passphrase }
+	});
+	return expect(LoginResponse, body, WRONG_PASSPHRASE).token;
+}
+
+/**
+ * False when the address's domain has no SPF record: mail still forwards, but
+ * DuckDuckGo can't send replies from the Duck address.
+ */
+export async function supportsReplies(proxy: string, email: string) {
+	try {
+		await call(proxy, '/auth/validate-email-address', { params: { email } });
+		return true;
+	} catch (err) {
+		if (err instanceof ApiError && err.code === 'secure_reply_not_supported') return false;
+		throw err;
+	}
+}
+
+export type Change = { form: FormData; status: 'changed' | 'verify' | 'confirm'; hash?: string };
+
+/** `verify` means a passphrase went to the new address; `confirm` means DuckDuckGo emailed why it failed. */
+export async function changeForwarding(
+	proxy: string,
+	token: string,
+	username: string,
+	email: string,
+	replies: boolean
+): Promise<Change> {
+	const form = new FormData();
+	form.append('user', username);
+	form.append('email', email);
+	form.append('disable_secure_reply', replies ? '0' : '1');
+	const body = await call(proxy, '/auth/change-email-address', {
+		method: 'POST',
+		token,
+		body: form
+	});
+	return { form, ...expect(ChangeResponse, body, 'DuckDuckGo returned no result.') };
+}
+
+/** Sends the passphrase from the new address; resends the same form. */
+export async function confirmForwarding(
+	proxy: string,
+	change: Change,
+	passphrase: string
+): Promise<Change> {
+	const body = await call(proxy, '/auth/change-email-address/confirm', {
+		method: 'POST',
+		params: { otp: passphrase, hash: change.hash ?? '' },
+		body: change.form
+	});
+	return { ...change, ...expect(ChangeResponse, body, 'DuckDuckGo returned no result.') };
 }

@@ -60,6 +60,26 @@ describe('applyBackup', () => {
 		expect(twice.newAddresses).toBe(0);
 	});
 
+	it("merge keeps a token's verdict with that token", () => {
+		const held = {
+			...empty(),
+			accounts: [{ ...account('a'), token: 'T1', rejected: true, checkedAt: 2 }]
+		};
+		const swapped = applyBackup(
+			held,
+			{ app: 'duckpond', v: 1, accounts: [{ ...account('a'), token: 'T2' }] },
+			'merge'
+		);
+		expect(swapped.state.accounts[0]).toMatchObject({
+			token: 'T2',
+			rejected: undefined,
+			checkedAt: undefined
+		});
+		const same = { ...account('a'), token: 'T1', checkedAt: 1, rejected: undefined };
+		const older = applyBackup(held, { app: 'duckpond', v: 1, accounts: [same] }, 'merge');
+		expect(older.state.accounts[0]).toMatchObject({ rejected: true, checkedAt: 2 });
+	});
+
 	it('replace drops what the file lacks', () => {
 		const { state } = applyBackup(
 			src,
